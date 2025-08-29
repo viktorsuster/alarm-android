@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { SafeAreaView, StyleSheet, NativeEventEmitter, NativeModules } from 'react-native';
+import { NativeEventEmitter, NativeModules, StyleSheet, View } from 'react-native';
 import { PaperProvider } from 'react-native-paper';
-import AlarmScreen from './src/screens/AlarmScreen';
 import { AlarmProvider } from './src/context/AlarmContext';
 import AlarmModal from './src/components/AlarmModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import AppNavigator from './src/navigation/AppNavigator';
 
 const ALARM_KEY = 'single_alarm';
 
-const AppContent = ({ initialProps }: { initialProps: any }) => {
+const App = (props: any): React.JSX.Element => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
 
@@ -24,7 +24,6 @@ const AppContent = ({ initialProps }: { initialProps: any }) => {
       showModal(message);
     };
 
-    // Listener pre warm start
     const eventEmitter = new NativeEventEmitter(NativeModules.AlarmModule);
     const subscription = eventEmitter.addListener('onAlarmTrigger', (event) => {
       if (event && event.message) {
@@ -32,12 +31,10 @@ const AppContent = ({ initialProps }: { initialProps: any }) => {
       }
     });
 
-    // Spracovanie pre cold start
-    if (initialProps && initialProps.notificationAction === 'stop_alarm' && initialProps.alarmMessage) {
-        handleAlarmEvent(initialProps.alarmMessage);
+    if (props && props.notificationAction === 'stop_alarm' && props.alarmMessage) {
+        handleAlarmEvent(props.alarmMessage);
     }
     
-    // Kontrola stavu v AsyncStorage pri štarte
     const checkRingingState = async () => {
         const storedAlarm = await AsyncStorage.getItem(ALARM_KEY);
         if (storedAlarm) {
@@ -52,22 +49,16 @@ const AppContent = ({ initialProps }: { initialProps: any }) => {
     return () => {
       subscription.remove();
     };
-  }, [initialProps]);
+  }, [props]);
 
-  return (
-    <AlarmProvider showModal={showModal}>
-      <AlarmScreen />
-      <AlarmModal visible={isModalVisible} message={modalMessage} onDismiss={hideModal} />
-    </AlarmProvider>
-  );
-};
-
-function App(props: any): React.JSX.Element {
   return (
     <PaperProvider>
-        <SafeAreaView style={styles.container}>
-          <AppContent initialProps={props} />
-        </SafeAreaView>
+      <View style={styles.container}>
+        <AlarmProvider showModal={showModal}>
+          <AppNavigator />
+          <AlarmModal visible={isModalVisible} message={modalMessage} onDismiss={hideModal} />
+        </AlarmProvider>
+      </View>
     </PaperProvider>
   );
 }

@@ -9,6 +9,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import SavedAlarmsModal, { Alarm } from '../components/SavedAlarmsModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 import SuccessModal from '../components/SuccessModal';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/AppNavigator';
 
 // Povoľte prehrávanie zvuku aj v tichom režime
 Sound.setCategory('Playback');
@@ -25,7 +27,13 @@ const SOUNDS = [
 const ALARM_KEY = 'single_alarm';
 const SAVED_ALARMS_KEY = 'saved_alarms';
 
-const AlarmScreen = () => {
+type AlarmScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Alarm'>;
+
+type Props = {
+  navigation: AlarmScreenNavigationProp;
+};
+
+const AlarmScreen = ({ navigation }: Props) => {
   const [date, setDate] = useState(new Date());
   const [open, setOpen] = useState(false);
   const [selectedSound, setSelectedSound] = useState(SOUNDS[0].value);
@@ -327,7 +335,15 @@ const AlarmScreen = () => {
 
       <StatusBar barStyle="light-content" />
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <Text style={styles.greeting}>Nazdar Marek</Text>
+        <View style={styles.header}>
+          <Text style={styles.greeting}>Nazdar Marek</Text>
+          <IconButton
+              icon="baby-face-outline"
+              iconColor="#E0E0E0"
+              size={30}
+              onPress={() => navigation.navigate('Gallery')}
+          />
+        </View>
         <Icon name="skull-crossbones" size={80} color="#E0E0E0" style={styles.skullIcon} />
         
         <View style={styles.section}>
@@ -409,6 +425,12 @@ const styles = StyleSheet.create({
   scrollContainer: {
     paddingHorizontal: 16,
     paddingBottom: 20,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 10,
   },
   greeting: {
     color: '#FFFFFF',
