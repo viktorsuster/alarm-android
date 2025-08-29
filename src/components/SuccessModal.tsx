@@ -1,43 +1,33 @@
 import React from 'react';
 import { Modal, Portal, Text, Button } from 'react-native-paper';
 import { StyleSheet, View } from 'react-native';
-import { NativeModules } from 'react-native';
 import LottieView from 'lottie-react-native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
-const { AlarmModule } = NativeModules;
-
-interface AlarmModalProps {
+interface SuccessModalProps {
     visible: boolean;
-    message: string;
     onDismiss: () => void;
+    message: string;
 }
 
-const AlarmModal: React.FC<AlarmModalProps> = ({ visible, message, onDismiss }) => {
-
-    const handleStopAlarm = async () => {
-        try {
-            await AlarmModule.stopAlarm();
-            onDismiss();
-        } catch (error) {
-            console.error('Failed to stop alarm:', error);
-        }
-    };
-
+const SuccessModal: React.FC<SuccessModalProps> = ({ visible, onDismiss, message }) => {
     return (
         <Portal>
-            <Modal visible={visible} onDismiss={handleStopAlarm} contentContainerStyle={styles.container}>
-                <Icon name="alarm-light-outline" size={60} color="#ff4500" />
-                <Text style={styles.title}>{message || 'Budík'}</Text>
-                <Text style={styles.subtitle}>Nastal čas vstať a dobyť svet!</Text>
+            <Modal visible={visible} onDismiss={onDismiss} contentContainerStyle={styles.container}>
+                <LottieView
+                    source={require('../assets/reminder.json')}
+                    autoPlay
+                    loop
+                    style={styles.lottie}
+                />
+                <Text style={styles.title}>Hotovo!</Text>
+                <Text style={styles.message}>{message}</Text>
                 <Button 
                     mode="contained" 
-                    onPress={handleStopAlarm} 
+                    onPress={onDismiss} 
                     style={styles.button}
                     labelStyle={styles.buttonLabel}
-                    icon="alarm-off"
                 >
-                    Zastaviť
+                    OK
                 </Button>
             </Modal>
         </Portal>
@@ -54,15 +44,20 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#333',
     },
+    lottie: {
+        width: 150,
+        height: 150,
+        marginBottom: -20,
+    },
     title: {
         color: '#FFFFFF',
-        fontSize: 28,
+        fontSize: 24,
         fontWeight: 'bold',
         textAlign: 'center',
         marginTop: 15,
         marginBottom: 10,
     },
-    subtitle: {
+    message: {
         color: '#B0B0B0',
         fontSize: 16,
         textAlign: 'center',
@@ -72,14 +67,11 @@ const styles = StyleSheet.create({
         marginTop: 10,
         backgroundColor: '#ff4500',
         borderRadius: 10,
-        paddingVertical: 8,
-        width: '100%',
+        paddingHorizontal: 20,
     },
     buttonLabel: {
         color: '#FFFFFF',
-        fontSize: 16,
-        fontWeight: 'bold',
     }
 });
 
-export default AlarmModal;
+export default SuccessModal;

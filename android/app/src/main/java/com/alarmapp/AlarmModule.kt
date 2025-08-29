@@ -15,7 +15,7 @@ class AlarmModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
     override fun getName() = "AlarmModule"
 
     @ReactMethod
-    fun setAlarm(timestamp: Double, soundName: String, message: String, promise: Promise) {
+    fun setAlarm(id: String, timestamp: Double, soundName: String, message: String, promise: Promise) {
         val context = reactApplicationContext
 
         // Uloženie názvu zvuku a správy
@@ -28,7 +28,8 @@ class AlarmModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
 
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val intent = Intent(context, AlarmReceiver::class.java)
-        val pendingIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+        val requestCode = id.takeLast(9).toInt()
+        val pendingIntent = PendingIntent.getBroadcast(context, requestCode, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
 
         try {
             alarmManager.setExactAndAllowWhileIdle(
