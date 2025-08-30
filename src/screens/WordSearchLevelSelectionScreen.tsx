@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useFocusEffect } from '@react-navigation/native';
@@ -16,17 +16,35 @@ type Props = {
 const WordSearchLevelSelectionScreen = ({ navigation }: Props) => {
   const [levels, setLevels] = useState<Level[]>([]);
   const [completedLevels, setCompletedLevels] = useState<Set<number>>(new Set());
+  const [inProgressLevels, setInProgressLevels] = useState<Set<number>>(new Set());
   const [selectedDifficulty, setSelectedDifficulty] = useState<'easy' | 'medium'>('easy');
   const [loading, setLoading] = useState(true);
 
-  const loadCompletedLevels = async () => {
+  const loadLevelStates = async () => {
+    setLoading(true);
     try {
-      const completed = await AsyncStorage.getItem('completed_word_search_levels');
-      if (completed !== null) {
-        setCompletedLevels(new Set(JSON.parse(completed)));
-      }
+      // Load completed levels
+      const completedJson = await AsyncStorage.getItem('completed_word_search_levels');
+      const completed = completedJson ? new Set<number>(JSON.parse(completedJson)) : new Set<number>();
+      setCompletedLevels(completed);
+
+      // Check for in-progress levels
+      const progressKeys = levelsData.map(l => `word_search_progress_${l.id}`);
+      const progressResults = await AsyncStorage.multiGet(progressKeys);
+      
+      const inProgress = new Set<number>();
+      progressResults.forEach(([key, value]) => {
+        if (value !== null) {
+          const levelId = parseInt(key.split('_').pop() || '0', 10);
+          if (levelId && !completed.has(levelId)) { // Show in-progress only if not completed
+            inProgress.add(levelId);
+          }
+        }
+      });
+      setInProgressLevels(inProgress);
+
     } catch (error) {
-      console.error('Failed to load completed levels.', error);
+      console.error('Failed to load level states.', error);
     } finally {
       setLoading(false);
     }
@@ -35,7 +53,7 @@ const WordSearchLevelSelectionScreen = ({ navigation }: Props) => {
   useFocusEffect(
     useCallback(() => {
       setLevels(levelsData as Level[]);
-      loadCompletedLevels();
+      loadLevelStates();
     }, [])
   );
 
@@ -63,6 +81,12 @@ const WordSearchLevelSelectionScreen = ({ navigation }: Props) => {
                 await AsyncStorage.setItem('completed_word_search_levels', JSON.stringify(newCompletedArray));
                 setCompletedLevels(new Set(newCompletedArray));
               }
+              // Also update in-progress state visually
+              setInProgressLevels(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(level.id);
+                return newSet;
+              });
             } catch (error) {
               console.error("Failed to reset level progress.", error);
             }
@@ -80,9 +104,13 @@ const WordSearchLevelSelectionScreen = ({ navigation }: Props) => {
       onLongPress={() => handleResetLevel(item)}
     >
       <Text style={styles.levelText}>{item.name}</Text>
-      {completedLevels.has(item.id) && (
-        <Icon name="check-circle" size={24} color="#4CAF50" />
-      )}
+      <View style={styles.iconContainer}>
+        {completedLevels.has(item.id) ? (
+          <Icon name="check-circle" size={24} color="#4CAF50" />
+        ) : inProgressLevels.has(item.id) ? (
+          <Icon name="circle-edit-outline" size={24} color="#FFC107" />
+        ) : null}
+      </View>
     </TouchableOpacity>
   );
 
@@ -167,6 +195,10 @@ const styles = StyleSheet.create({
   levelText: {
     fontSize: 18,
     color: '#FFFFFF',
+    flex: 1, // Allow text to take available space
+  },
+  iconContainer: {
+    marginLeft: 10, // Add some space between text and icon
   },
 });
 

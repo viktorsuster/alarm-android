@@ -1,9 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Dimensions, PanResponder, Modal, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, Dimensions, PanResponder, Modal, TouchableOpacity, TextInput, ActivityIndicator, Alert } from 'react-native';
 import LottieView from 'lottie-react-native';
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { GamesStackParamList } from '../navigation/AppNavigator';
+
+type GameState = {
+  foundWords: string[];
+  permanentlySelectedCells: {row: number, col: number}[];
+  isGuessPhaseActive: boolean;
+};
 
 const CELL_SIZE = 35;
 const { width } = Dimensions.get('window');
@@ -32,61 +39,109 @@ const WordSearchScreen = () => {
   const [hintCells, setHintCells] = useState<{row: number, col: number}[]>([]);
   const [levelName, setLevelName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [hintAttempts, setHintAttempts] = useState(3);
   
   const gridContainerRef = useRef<View>(null);
   const gridLayoutRef = useRef<{x: number, y: number} | null>(null);
 
-  useEffect(() => {
-    const loadGame = async () => {
-      if (!level) return;
-      
-      setIsLoading(true);
+  const loadGame = useCallback(async (forceNew = false) => {
+    if (!level) return;
+    
+    setIsLoading(true);
 
-      // Setup grid and basic level info first, as it's needed for both new and saved games
-      setLevelName(level.name);
-      setWords(level.words);
-      setGridSize(level.gridSize);
-      setTajnicka(level.tajnicka);
-      setSolvedSentence(level.solved_sentence);
-      const { grid: newGrid, wordLocations: newWordLocations } = generateGrid(level.gridSize, level.words, level.tajnicka);
-      setGrid(newGrid);
-      setWordLocations(newWordLocations);
+    const loadHints = async () => {
+        try {
+            const hintsJson = await AsyncStorage.getItem('global_hint_attempts');
+            setHintAttempts(hintsJson !== null ? JSON.parse(hintsJson) : 3);
+        } catch (error) {
+            console.error("Failed to load global hints.", error);
+            setHintAttempts(3); // Default to 3 on error
+        }
+    };
+    loadHints();
 
-      // Try to load saved state
+    // Setup grid and basic level info first, as it's needed for both new and saved games
+    setLevelName(level.name);
+    setWords(level.words);
+    setGridSize(level.gridSize);
+    setTajnicka(level.tajnicka);
+    setSolvedSentence(level.solved_sentence);
+    const { grid: newGrid, wordLocations: newWordLocations } = generateGrid(level.gridSize, level.words, level.tajnicka);
+    setGrid(newGrid);
+    setWordLocations(newWordLocations);
+
+    let loadedFromSave = false;
+    if (!forceNew) {
       try {
         const savedStateJSON = await AsyncStorage.getItem(`word_search_progress_${level.id}`);
         if (savedStateJSON) {
-          const savedState = JSON.parse(savedStateJSON);
+          const savedState: GameState = JSON.parse(savedStateJSON);
           setFoundWords(savedState.foundWords);
           setPermanentlySelectedCells(savedState.permanentlySelectedCells);
           setIsGuessPhaseActive(savedState.isGuessPhaseActive);
-        } else {
-          // If no saved state, initialize a new game
-          setFoundWords([]);
-          setPermanentlySelectedCells([]);
-          setIsGuessPhaseActive(false);
+          loadedFromSave = true;
         }
       } catch (error) {
         console.error("Failed to load game state.", error);
-        // Fallback to a new game if loading fails
-        setFoundWords([]);
-        setPermanentlySelectedCells([]);
-        setIsGuessPhaseActive(false);
-      } finally {
-        // Reset transient state regardless of load success
-        setSelectedCells([]);
-        setIsGuessModalVisible(false);
-        setIsTajnickaGuessed(false);
-        setGuess('');
-        setGuessFeedback('');
-        setIsLoading(false);
       }
-    };
+    }
 
-    loadGame();
+    if (!loadedFromSave) {
+      setFoundWords([]);
+      setPermanentlySelectedCells([]);
+      setIsGuessPhaseActive(false);
+    }
+
+    setSelectedCells([]);
+    setIsGuessModalVisible(false);
+    setIsTajnickaGuessed(false);
+    setGuess('');
+    setGuessFeedback('');
+    setIsLoading(false);
   }, [level]);
 
-  const saveGameState = async (state: { foundWords: string[], permanentlySelectedCells: {row: number, col: number}[], isGuessPhaseActive: boolean }) => {
+  useEffect(() => {
+    loadGame();
+  }, [loadGame]);
+
+  const handleRefresh = useCallback(() => {
+    Alert.alert(
+      "Reštartovať level",
+      "Naozaj chcete začať tento level odznova s novým rozložením? Váš aktuálny postup sa stratí.",
+      [
+        { text: "Zrušiť", style: "cancel" },
+        {
+          text: "Áno",
+          onPress: async () => {
+            try {
+              await AsyncStorage.removeItem(`word_search_progress_${level.id}`);
+              loadGame(true);
+            } catch (error) {
+              console.error("Failed to reset level.", error);
+            }
+          }
+        }
+      ]
+    );
+  }, [level, loadGame]);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Icon name="heart" size={22} color="#FF6B6B" style={{ marginRight: 5 }} />
+            <Text style={{ color: '#FFFFFF', marginRight: 15, fontSize: 16, fontWeight: 'bold' }}>
+                {hintAttempts}
+            </Text>
+            <TouchableOpacity onPress={handleRefresh} style={{ marginRight: 15 }}>
+                <Icon name="refresh" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+        </View>
+      ),
+    });
+  }, [navigation, handleRefresh, hintAttempts]);
+
+  const saveGameState = async (state: GameState) => {
     try {
       const stateJSON = JSON.stringify(state);
       await AsyncStorage.setItem(`word_search_progress_${level.id}`, stateJSON);
@@ -217,7 +272,7 @@ const WordSearchScreen = () => {
       saveGameState({
         foundWords: newFoundWords,
         permanentlySelectedCells: newPermanentlySelectedCells,
-        isGuessPhaseActive: newIsGuessPhaseActive
+        isGuessPhaseActive: newIsGuessPhaseActive,
       });
     }
   };
@@ -296,8 +351,23 @@ const WordSearchScreen = () => {
     return permanentlySelectedCells.some(cell => cell.row === row && cell.col === col);
   }
 
-  const handleHint = (word: string) => {
+  const handleHint = async (word: string) => {
       if (foundWords.includes(word)) return;
+
+      if (hintAttempts <= 0) {
+        Alert.alert("Žiadne nápovedy", "Už si vyčerpal všetky dostupné nápovedy.");
+        return;
+      }
+
+      const newHintAttempts = hintAttempts - 1;
+      setHintAttempts(newHintAttempts);
+      
+      try {
+        await AsyncStorage.setItem('global_hint_attempts', JSON.stringify(newHintAttempts));
+      } catch (error) {
+        console.error("Failed to save new hint count.", error);
+      }
+
       const locations = wordLocations.get(word);
       if (locations) {
           setHintCells(locations);
@@ -332,9 +402,20 @@ const WordSearchScreen = () => {
     try {
       const completed = await AsyncStorage.getItem('completed_word_search_levels');
       const completedSet = completed ? new Set(JSON.parse(completed)) : new Set();
-      completedSet.add(levelId);
-      await AsyncStorage.setItem('completed_word_search_levels', JSON.stringify(Array.from(completedSet)));
-      // Also remove the in-progress save file as the level is now complete
+      
+      const wasAlreadyCompleted = completedSet.has(levelId);
+
+      if (!wasAlreadyCompleted) {
+          completedSet.add(levelId);
+          await AsyncStorage.setItem('completed_word_search_levels', JSON.stringify(Array.from(completedSet)));
+          
+          // Award a hint only on the first completion
+          const currentHints = hintAttempts + 1;
+          setHintAttempts(currentHints);
+          await AsyncStorage.setItem('global_hint_attempts', JSON.stringify(currentHints));
+      }
+      
+      // Remove the in-progress save file as the level is now complete
       await AsyncStorage.removeItem(`word_search_progress_${levelId}`);
     } catch (error) {
       console.error('Failed to save completed level.', error);

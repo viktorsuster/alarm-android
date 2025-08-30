@@ -50,7 +50,7 @@ const GamesStackNavigator = () => {
     >
       <GamesStack.Screen name="GamesList" component={GamesScreen} options={{ title: 'Hry' }} />
       <GamesStack.Screen name="GameDetail" component={GameDetailScreen} options={({ route }) => ({ title: route.params.gameName })} />
-      <GamesStack.Screen name="WordSearchLevelSelection" component={WordSearchLevelSelectionScreen} options={{ title: 'Osemsmerovka - Výber levelu' }} />
+      <GamesStack.Screen name="WordSearchLevelSelection" component={WordSearchLevelSelectionScreen} options={{ title: 'Osemsmerovka' }} />
       <GamesStack.Screen name="WordSearch" component={WordSearchScreen} options={{ title: 'Osemsmerovka' }} />
     </GamesStack.Navigator>
   );
