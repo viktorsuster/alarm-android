@@ -22,9 +22,8 @@ class AlarmService : Service() {
         val channel = NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_HIGH)
         notificationManager.createNotificationChannel(channel)
 
-        val sharedPref = getSharedPreferences("AlarmPrefs", Context.MODE_PRIVATE)
-        val soundName = sharedPref.getString("SOUND_NAME", null)
-        val alarmMessage = sharedPref.getString("ALARM_MESSAGE", "Budík")
+        val soundName = intent?.getStringExtra("ALARM_SOUND_NAME")
+        val alarmMessage = intent?.getStringExtra("ALARM_MESSAGE") ?: "Budík"
 
         // Intent na otvorenie aplikácie
         val notificationIntent = Intent(this, MainActivity::class.java).apply {

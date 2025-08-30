@@ -36,10 +36,23 @@ const SavedAlarmsModal: React.FC<SavedAlarmsModalProps> = ({ visible, onDismiss,
     }, [visible]);
 
     const handleDelete = async (alarmId: string) => {
-        const newAlarms = savedAlarms.filter(alarm => alarm.id !== alarmId);
-        await AsyncStorage.setItem(SAVED_ALARMS_KEY, JSON.stringify(newAlarms));
-        setSavedAlarms(newAlarms);
-        Alert.alert('Pripomienka zmazaná');
+        Alert.alert(
+            'Zmazať pripomienku',
+            'Naozaj chcete natrvalo zmazať túto pripomienku?',
+            [
+                { text: 'Zrušiť', style: 'cancel' },
+                { 
+                    text: 'Zmazať', 
+                    style: 'destructive',
+                    onPress: async () => {
+                        const newAlarms = savedAlarms.filter(alarm => alarm.id !== alarmId);
+                        await AsyncStorage.setItem(SAVED_ALARMS_KEY, JSON.stringify(newAlarms));
+                        setSavedAlarms(newAlarms);
+                        // Možno by sme tu chceli zrušiť aj natívny alarm, ak by bežal
+                    }
+                }
+            ]
+        );
     };
     
     const handleEdit = (alarm: Alarm) => {

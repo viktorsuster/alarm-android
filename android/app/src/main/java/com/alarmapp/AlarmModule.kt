@@ -18,17 +18,14 @@ class AlarmModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
     fun setAlarm(id: String, timestamp: Double, soundName: String, message: String, promise: Promise) {
         val context = reactApplicationContext
 
-        // Uloženie názvu zvuku a správy
-        val sharedPref = context.getSharedPreferences("AlarmPrefs", Context.MODE_PRIVATE)
-        with (sharedPref.edit()) {
-            putString("SOUND_NAME", soundName)
-            putString("ALARM_MESSAGE", message)
-            apply()
-        }
-
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val intent = Intent(context, AlarmReceiver::class.java)
-        val requestCode = id.takeLast(9).toInt()
+        val intent = Intent(context, AlarmReceiver::class.java).apply {
+            putExtra("ALARM_ID", id)
+            putExtra("ALARM_SOUND_NAME", soundName)
+            putExtra("ALARM_MESSAGE", message)
+        }
+        
+        val requestCode = id.hashCode()
         val pendingIntent = PendingIntent.getBroadcast(context, requestCode, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
 
         try {
