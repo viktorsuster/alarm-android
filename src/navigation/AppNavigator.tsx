@@ -11,6 +11,7 @@ import GameDetailScreen from '../screens/GameDetailScreen';
 // import SortPuzzleScreen from '../screens/SortPuzzleScreen';
 import WordSearchScreen from '../screens/WordSearchScreen';
 import WordSearchLevelSelectionScreen from '../screens/WordSearchLevelSelectionScreen';
+import MemoryTrainerScreen from '../screens/MemoryTrainerScreen';
 
 export type Level = {
   id: number;
@@ -28,6 +29,7 @@ export type GamesStackParamList = {
   SortPuzzle: undefined;
   WordSearch: { level: Level };
   WordSearchLevelSelection: undefined;
+  MemoryTrainer: undefined;
 };
 
 export type RootTabParamList = {
@@ -52,6 +54,7 @@ const GamesStackNavigator = () => {
       <GamesStack.Screen name="GameDetail" component={GameDetailScreen} options={({ route }) => ({ title: route.params.gameName })} />
       <GamesStack.Screen name="WordSearchLevelSelection" component={WordSearchLevelSelectionScreen} options={{ title: 'Osemsmerovka' }} />
       <GamesStack.Screen name="WordSearch" component={WordSearchScreen} options={{ title: 'Osemsmerovka' }} />
+      <GamesStack.Screen name="MemoryTrainer" component={MemoryTrainerScreen} options={{ headerShown: false }} />
     </GamesStack.Navigator>
   );
 }
