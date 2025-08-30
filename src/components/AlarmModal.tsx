@@ -28,8 +28,8 @@ const AlarmModal: React.FC<AlarmModalProps> = ({ visible, message, onDismiss }) 
         <Portal>
             <Modal visible={visible} onDismiss={handleStopAlarm} contentContainerStyle={styles.container}>
                 <Icon name="alarm-light-outline" size={60} color="#ff4500" />
-                <Text style={styles.title}>{message || 'Budík'}</Text>
-                <Text style={styles.subtitle}>Nastal čas vstať a dobyť svet!</Text>
+                <Text style={styles.title}>Pripomienka</Text>
+                <Text style={styles.subtitle}>{message || 'Budík'}</Text>
                 <Button 
                     mode="contained" 
                     onPress={handleStopAlarm} 

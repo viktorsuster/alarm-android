@@ -233,11 +233,18 @@ const AlarmScreen = ({ navigation, route }: Props) => {
             <Text style={styles.itemDate}>
                 {new Date(item.timestamp).toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' })}
             </Text>
+            <Text style={styles.itemFullDate}>
+                {new Date(item.timestamp).toLocaleDateString('sk-SK', { weekday: 'long', day: 'numeric', month: 'long' })}
+            </Text>
             <Text style={styles.itemMessage}>{item.message}</Text>
         </View>
         <View style={styles.itemActions}>
-            <IconButton icon="pencil-outline" size={24} onPress={() => handleEditAlarm(item)} iconColor="#B0B0B0"/>
-            <IconButton icon="delete-outline" size={24} onPress={() => handleDeleteAlarm(item.id)} iconColor="#ff4500"/>
+            <TouchableOpacity style={[styles.actionButton, styles.editButton]} onPress={() => handleEditAlarm(item)}>
+                <Icon name="pencil-outline" size={20} color="#FFFFFF"/>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.actionButton, styles.deleteButton]} onPress={() => handleDeleteAlarm(item.id)}>
+                <Icon name="delete-outline" size={20} color="#FFFFFF"/>
+            </TouchableOpacity>
         </View>
     </View>
   );
@@ -508,8 +515,24 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: 'bold',
   },
+  itemFullDate: {
+    color: '#B0B0B0',
+    fontSize: 14,
+  },
   itemActions: {
     flexDirection: 'row',
+    alignItems: 'center',
+  },
+  actionButton: {
+    marginLeft: 10,
+    padding: 8,
+    borderRadius: 25,
+  },
+  editButton: {
+    backgroundColor: '#2C2C2E',
+  },
+  deleteButton: {
+    backgroundColor: '#ff4500',
   },
   listDivider: {
     backgroundColor: '#333',
