@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -12,6 +12,7 @@ import GameDetailScreen from '../screens/GameDetailScreen';
 import WordSearchScreen from '../screens/WordSearchScreen';
 import WordSearchLevelSelectionScreen from '../screens/WordSearchLevelSelectionScreen';
 import MemoryTrainerScreen from '../screens/MemoryTrainerScreen';
+import SortPuzzleScreen from '../screens/SortPuzzleScreen';
 
 export type Level = {
   id: number;
@@ -55,6 +56,7 @@ const GamesStackNavigator = () => {
       <GamesStack.Screen name="WordSearchLevelSelection" component={WordSearchLevelSelectionScreen} options={{ title: 'Osemsmerovka' }} />
       <GamesStack.Screen name="WordSearch" component={WordSearchScreen} options={{ title: 'Osemsmerovka' }} />
       <GamesStack.Screen name="MemoryTrainer" component={MemoryTrainerScreen} options={{ headerShown: false }} />
+      <GamesStack.Screen name="SortPuzzle" component={SortPuzzleScreen} options={{ headerShown: false }} />
     </GamesStack.Navigator>
   );
 }
@@ -109,9 +111,18 @@ const AppNavigator = () => {
         <Tab.Screen
           name="Games"
           component={GamesStackNavigator}
-          options={{
-            headerShown: false,
-            tabBarLabel: 'Hry',
+          options={({ route }) => {
+            const routeName = getFocusedRouteNameFromRoute(route) ?? 'GamesList';
+            const screensWithoutTabBar = ['WordSearch', 'MemoryTrainer', 'SortPuzzle'];
+            return {
+              headerShown: false,
+              tabBarLabel: 'Hry',
+              tabBarStyle: {
+                display: screensWithoutTabBar.includes(routeName) ? 'none' : 'flex',
+                backgroundColor: '#1E1E1E',
+                borderTopColor: '#333'
+              },
+            };
           }}
         />
       </Tab.Navigator>

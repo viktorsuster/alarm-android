@@ -125,14 +125,26 @@ const WordSearchScreen = () => {
     );
   }, [level, loadGame]);
 
+  const showHintInfo = () => {
+    Alert.alert(
+        "Čo sú nápovedy?",
+        "Toto je počet vašich nápoved (životov).\n\n" +
+        "• Kliknutím na slovo v zozname ho môžete použiť na krátke zobrazenie slova v mriežke.\n" +
+        "• Za každý úspešne dokončený level (prvýkrát) získate jednu nápovedu navyše.",
+        [{ text: "Rozumiem" }]
+    );
+  };
+
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Icon name="heart" size={22} color="#FF6B6B" style={{ marginRight: 5 }} />
-            <Text style={{ color: '#FFFFFF', marginRight: 15, fontSize: 16, fontWeight: 'bold' }}>
-                {hintAttempts}
-            </Text>
+            <TouchableOpacity onPress={showHintInfo} style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Icon name="heart" size={22} color="#FF6B6B" style={{ marginRight: 5 }} />
+                <Text style={{ color: '#FFFFFF', marginRight: 15, fontSize: 16, fontWeight: 'bold' }}>
+                    {hintAttempts}
+                </Text>
+            </TouchableOpacity>
             <TouchableOpacity onPress={handleRefresh} style={{ marginRight: 15 }}>
                 <Icon name="refresh" size={24} color="#FFFFFF" />
             </TouchableOpacity>
@@ -351,7 +363,7 @@ const WordSearchScreen = () => {
     return permanentlySelectedCells.some(cell => cell.row === row && cell.col === col);
   }
 
-  const handleHint = async (word: string) => {
+  const handleHint = (word: string) => {
       if (foundWords.includes(word)) return;
 
       if (hintAttempts <= 0) {
@@ -359,22 +371,34 @@ const WordSearchScreen = () => {
         return;
       }
 
-      const newHintAttempts = hintAttempts - 1;
-      setHintAttempts(newHintAttempts);
-      
-      try {
-        await AsyncStorage.setItem('global_hint_attempts', JSON.stringify(newHintAttempts));
-      } catch (error) {
-        console.error("Failed to save new hint count.", error);
-      }
-
-      const locations = wordLocations.get(word);
-      if (locations) {
-          setHintCells(locations);
-          setTimeout(() => {
-              setHintCells([]);
-          }, 1000);
-      }
+      Alert.alert(
+        "Použiť nápovedu?",
+        "Naozaj chcete použiť nápovedu? Bude vás to stáť jeden život a slovo sa zobrazí na 1 sekundu.",
+        [
+            { text: "Zrušiť", style: "cancel" },
+            { 
+                text: "Áno, použiť", 
+                onPress: async () => {
+                    const newHintAttempts = hintAttempts - 1;
+                    setHintAttempts(newHintAttempts);
+                    
+                    try {
+                        await AsyncStorage.setItem('global_hint_attempts', JSON.stringify(newHintAttempts));
+                    } catch (error) {
+                        console.error("Failed to save new hint count.", error);
+                    }
+              
+                    const locations = wordLocations.get(word);
+                    if (locations) {
+                        setHintCells(locations);
+                        setTimeout(() => {
+                            setHintCells([]);
+                        }, 1000);
+                    }
+                }
+            }
+        ]
+      );
   };
 
   const isCellHinted = (row: number, col: number) => {

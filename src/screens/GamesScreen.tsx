@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { GamesStackParamList } from '../navigation/AppNavigator'; // This will be created later
 
 type GamesScreenNavigationProp = StackNavigationProp<GamesStackParamList, 'GamesList'>;
@@ -11,8 +12,9 @@ type Props = {
 
 // Dummy data for games
 const GAMES = [
-  { id: '4', name: 'Osemsmerovka', screen: 'WordSearchLevelSelection' as const },
-  { id: '5', name: 'Pexeso', screen: 'MemoryTrainer' as const },
+  { id: '4', name: 'Osemsmerovka', screen: 'WordSearchLevelSelection' as const, icon: 'format-letter-matches' },
+  { id: '5', name: 'Pexeso', screen: 'MemoryTrainer' as const, icon: 'brain' },
+  { id: '1', name: 'Triedenie Smajlíkov', screen: 'SortPuzzle' as const, icon: 'water-pump' },
 ];
 
 const GamesScreen = ({ navigation }: Props) => {
@@ -24,14 +26,9 @@ const GamesScreen = ({ navigation }: Props) => {
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.gameItem}
-            onPress={() => {
-              if (item.screen === 'GameDetail') {
-                navigation.navigate(item.screen, { gameId: item.id, gameName: item.name });
-              } else {
-                navigation.navigate(item.screen);
-              }
-            }}
+            onPress={() => navigation.navigate(item.screen)}
           >
+            <Icon name={item.icon} size={28} color="#ff4500" style={styles.icon} />
             <Text style={styles.gameText}>{item.name}</Text>
           </TouchableOpacity>
         )}
@@ -52,10 +49,15 @@ const styles = StyleSheet.create({
     marginVertical: 8,
     marginHorizontal: 16,
     borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   gameText: {
     fontSize: 18,
     color: '#FFFFFF',
+  },
+  icon: {
+    marginRight: 15,
   },
 });
 
