@@ -51,7 +51,7 @@
       "SENEC"
     ],
     "tajnicka": "BABKAUHNIABABKAUHNILA",
-    "solved_sentence": "Kto neskoro chodí sám sebe škodí"
+    "solved_sentence": "babka uhni a babka uhnila"
   },
   {
     "id": 4,
@@ -67,8 +67,126 @@
     "name": "Level 5 - Doprava",
     "difficulty": "easy",
     "gridSize": 8,
-    "words": ["BUS", "LOĎ", "AUTO", "RAKETA", "SKÚTER", "LET", "VOZ"],
+    "words": ["BUS", "LOĎ", "AUTO", "RAKETA", "SKÚTER", "LET", "SEN"],
     "tajnicka": "ZOŽENYŠESTANEŠEKERALENKECŽIJESPŇAKOM",
     "solved_sentence": "Zo ženy še stane šekera len kec žije s pňakom"
+  },
+  {
+    "id": 6,
+    "name": "Level 6 - Časti tela",
+    "difficulty": "medium",
+    "gridSize": 10,
+    "words": [
+      "HLAVA",
+      "KRK",
+      "LÍCE",
+      "LAKET",
+      "ZÁPÄSTIE",
+      "RUKA",
+      "PRSTY",
+      "HRUDNÍK",
+      "BRUCHO",
+      "CHRBTICA",
+      "NOHA",
+      "KOLENO",
+      "ČLENOK",
+      "PÄTA"
+    ],
+    "tajnicka": "ROBČOMILUJEŠAMILUJČOROBÍŠ",
+    "solved_sentence": "Rob čo miluješ a miluj čo robíš"
+  },
+  {
+    "id": 7,
+    "name": "Level 7 - Počasie",
+    "difficulty": "medium",
+    "gridSize": 10,
+    "words": [
+      "SLNKO",
+      "BLESK",
+      "SNEH",
+      "VIETOR",
+      "OBLAKY",
+      "BÚRKA",
+      "HMLA",
+      "MRÁZ",
+      "DÚHA",
+      "KRÚPY",
+      "ZIMA",
+      "TEPLO",
+      "CHLAD"
+    ],
+    "tajnicka": "KEĎHOVORÍŠPRAVDUNEMUSÍŠSIVŠETKOPAMÄTAŤ",
+    "solved_sentence": "Keď hovoríš pravdu nemusíš si všetko pamätať"
+  },
+  {
+    "id": 8,
+    "name": "Level 8 - V kuchyni",
+    "difficulty": "medium",
+    "gridSize": 10,
+    "words": [
+      "HRNIEC",
+      "PANVICA",
+      "SITKO",
+      "VARIČ",
+      "DREZ",
+      "RÚRA",
+      "MIKROVLNKA",
+      "TANIER",
+      "POHÁR",
+      "PRÍBOR",
+      "NÔŽ",
+      "VIDLIČKA",
+      "CUKOR"
+    ],
+    "tajnicka": "NENECHAJBLBAABYTISKAZILDEŇ",
+    "solved_sentence": "Nenechaj blba aby ti skazil deň"
+  },
+  {
+    "id": 9,
+    "name": "Level 9 - Škola",
+    "difficulty": "medium",
+    "gridSize": 10,
+    "words": [
+      "UČITEĽ",
+      "TRI",
+      "TABUĽA",
+      "KRIEDA",
+      "LAVICA",
+      "ZOŠIT",
+      "KNIHA",
+      "PERO",
+      "CERUZKA",
+      "PRAVÍTKO",
+      "GUMA",
+      "TAŠKA",
+      "TRIEDA",
+      "ŠKOLA"
+    ],
+    "tajnicka": "ZMENYVEDÚKNOVÝMZAČIATKOM",
+    "solved_sentence": "Zmeny vedú k novým začiatkom"
+  },
+  {
+    "id": 10,
+    "name": "Level 10 - Príroda",
+    "difficulty": "medium",
+    "gridSize": 10,
+    "words": [
+      "STROM",
+      "KVET",
+      "TRÁVA",
+      "LES",
+      "LÚKA",
+      "RIEKA",
+      "JAZERO",
+      "VRCH",
+      "SLNKO",
+      "MESIAC",
+      "HVIEZDY",
+      "VODA",
+      "VZDUCH",
+      "POLE"
+    ],
+    "tajnicka": "VÁŽSITÝCHKTORÝTOSTEBOUNEVZDÁVAJÚ",
+    "solved_sentence": "Váž si tých ktorý to s tebou nevzdávajú"
   }
 ]

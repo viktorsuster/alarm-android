@@ -10,12 +10,24 @@ import GamesScreen from '../screens/GamesScreen';
 import GameDetailScreen from '../screens/GameDetailScreen';
 // import SortPuzzleScreen from '../screens/SortPuzzleScreen';
 import WordSearchScreen from '../screens/WordSearchScreen';
+import WordSearchLevelSelectionScreen from '../screens/WordSearchLevelSelectionScreen';
+
+export type Level = {
+  id: number;
+  name: string;
+  difficulty: string;
+  gridSize: number;
+  words: string[];
+  tajnicka: string;
+  solved_sentence: string;
+};
 
 export type GamesStackParamList = {
   GamesList: undefined;
   GameDetail: { gameId: string, gameName: string };
   SortPuzzle: undefined;
-  WordSearch: undefined;
+  WordSearch: { level: Level };
+  WordSearchLevelSelection: undefined;
 };
 
 export type RootTabParamList = {
@@ -38,6 +50,7 @@ const GamesStackNavigator = () => {
     >
       <GamesStack.Screen name="GamesList" component={GamesScreen} options={{ title: 'Hry' }} />
       <GamesStack.Screen name="GameDetail" component={GameDetailScreen} options={({ route }) => ({ title: route.params.gameName })} />
+      <GamesStack.Screen name="WordSearchLevelSelection" component={WordSearchLevelSelectionScreen} options={{ title: 'Osemsmerovka - Výber levelu' }} />
       <GamesStack.Screen name="WordSearch" component={WordSearchScreen} options={{ title: 'Osemsmerovka' }} />
     </GamesStack.Navigator>
   );

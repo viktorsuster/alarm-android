@@ -14,7 +14,7 @@ const GAMES = [
   { id: '1', name: 'Sort Puzzle', screen: 'SortPuzzle' as const },
   { id: '2', name: 'Piškvorky', screen: 'GameDetail' as const },
   { id: '3', name: 'Tetris', screen: 'GameDetail' as const },
-  { id: '4', name: 'Osemsmerovka', screen: 'WordSearch' as const },
+  { id: '4', name: 'Osemsmerovka', screen: 'WordSearchLevelSelection' as const },
 ];
 
 const GamesScreen = ({ navigation }: Props) => {

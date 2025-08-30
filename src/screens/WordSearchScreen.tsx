@@ -1,12 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Dimensions, PanResponder, Modal, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, PanResponder, Modal, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import LottieView from 'lottie-react-native';
-import levels from '../assets/word-search-levels.json';
+import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { GamesStackParamList } from '../navigation/AppNavigator';
 
 const CELL_SIZE = 35;
 const { width } = Dimensions.get('window');
 
+type WordSearchScreenRouteProp = RouteProp<GamesStackParamList, 'WordSearch'>;
+
 const WordSearchScreen = () => {
+  const route = useRoute<WordSearchScreenRouteProp>();
+  const navigation = useNavigation();
+  const { level } = route.params;
+
   const [grid, setGrid] = useState<string[][]>([]);
   const [words, setWords] = useState<string[]>([]);
   const [tajnicka, setTajnicka] = useState('');
@@ -15,8 +23,6 @@ const WordSearchScreen = () => {
   const [selectedCells, setSelectedCells] = useState<{row: number, col: number}[]>([]);
   const [permanentlySelectedCells, setPermanentlySelectedCells] = useState<{row: number, col: number}[]>([]);
   const [gridSize, setGridSize] = useState(0);
-  const [currentLevelIndex, setCurrentLevelIndex] = useState(0);
-  const [isLevelComplete, setIsLevelComplete] = useState(false);
   const [isGuessPhaseActive, setIsGuessPhaseActive] = useState(false);
   const [isGuessModalVisible, setIsGuessModalVisible] = useState(false);
   const [isTajnickaGuessed, setIsTajnickaGuessed] = useState(false);
@@ -25,36 +31,68 @@ const WordSearchScreen = () => {
   const [wordLocations, setWordLocations] = useState<Map<string, {row: number, col: number}[]>>(new Map());
   const [hintCells, setHintCells] = useState<{row: number, col: number}[]>([]);
   const [levelName, setLevelName] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   
   const gridContainerRef = useRef<View>(null);
   const gridLayoutRef = useRef<{x: number, y: number} | null>(null);
 
   useEffect(() => {
-    loadLevel(currentLevelIndex);
-  }, [currentLevelIndex]);
-  
-  const loadLevel = (levelIndex: number) => {
-    if (levelIndex >= levels.length) {
-      // Handle game completion later
-      return;
+    const loadGame = async () => {
+      if (!level) return;
+      
+      setIsLoading(true);
+
+      // Setup grid and basic level info first, as it's needed for both new and saved games
+      setLevelName(level.name);
+      setWords(level.words);
+      setGridSize(level.gridSize);
+      setTajnicka(level.tajnicka);
+      setSolvedSentence(level.solved_sentence);
+      const { grid: newGrid, wordLocations: newWordLocations } = generateGrid(level.gridSize, level.words, level.tajnicka);
+      setGrid(newGrid);
+      setWordLocations(newWordLocations);
+
+      // Try to load saved state
+      try {
+        const savedStateJSON = await AsyncStorage.getItem(`word_search_progress_${level.id}`);
+        if (savedStateJSON) {
+          const savedState = JSON.parse(savedStateJSON);
+          setFoundWords(savedState.foundWords);
+          setPermanentlySelectedCells(savedState.permanentlySelectedCells);
+          setIsGuessPhaseActive(savedState.isGuessPhaseActive);
+        } else {
+          // If no saved state, initialize a new game
+          setFoundWords([]);
+          setPermanentlySelectedCells([]);
+          setIsGuessPhaseActive(false);
+        }
+      } catch (error) {
+        console.error("Failed to load game state.", error);
+        // Fallback to a new game if loading fails
+        setFoundWords([]);
+        setPermanentlySelectedCells([]);
+        setIsGuessPhaseActive(false);
+      } finally {
+        // Reset transient state regardless of load success
+        setSelectedCells([]);
+        setIsGuessModalVisible(false);
+        setIsTajnickaGuessed(false);
+        setGuess('');
+        setGuessFeedback('');
+        setIsLoading(false);
+      }
+    };
+
+    loadGame();
+  }, [level]);
+
+  const saveGameState = async (state: { foundWords: string[], permanentlySelectedCells: {row: number, col: number}[], isGuessPhaseActive: boolean }) => {
+    try {
+      const stateJSON = JSON.stringify(state);
+      await AsyncStorage.setItem(`word_search_progress_${level.id}`, stateJSON);
+    } catch (error) {
+      console.error("Failed to save game state.", error);
     }
-    const level = levels[levelIndex];
-    setLevelName(level.name);
-    setWords(level.words);
-    setGridSize(level.gridSize);
-    setTajnicka(level.tajnicka);
-    setSolvedSentence(level.solved_sentence);
-    setFoundWords([]);
-    setSelectedCells([]);
-    setPermanentlySelectedCells([]);
-    setIsGuessPhaseActive(false);
-    setIsGuessModalVisible(false);
-    setIsTajnickaGuessed(false);
-    setGuess('');
-    setGuessFeedback('');
-    const { grid: newGrid, wordLocations: newWordLocations } = generateGrid(level.gridSize, level.words, level.tajnicka);
-    setGrid(newGrid);
-    setWordLocations(newWordLocations);
   };
   
   const generateGrid = (size: number, wordsToPlace: string[], secretWord: string) => {
@@ -165,12 +203,22 @@ const WordSearchScreen = () => {
     
     if (wordFound) {
       const newFoundWords = [...foundWords, correctWord];
-      setFoundWords(newFoundWords);
-      setPermanentlySelectedCells(prev => [...prev, ...cells]);
+      const newPermanentlySelectedCells = [...permanentlySelectedCells, ...cells];
+      const newIsGuessPhaseActive = newFoundWords.length === words.length;
 
-      if (newFoundWords.length === words.length) {
+      setFoundWords(newFoundWords);
+      setPermanentlySelectedCells(newPermanentlySelectedCells);
+      
+      if (newIsGuessPhaseActive) {
         setIsGuessPhaseActive(true);
       }
+      
+      // Save state after a successful find
+      saveGameState({
+        foundWords: newFoundWords,
+        permanentlySelectedCells: newPermanentlySelectedCells,
+        isGuessPhaseActive: newIsGuessPhaseActive
+      });
     }
   };
 
@@ -274,39 +322,39 @@ const WordSearchScreen = () => {
       setIsGuessModalVisible(false);
       setIsTajnickaGuessed(true);
       setGuessFeedback('');
+      saveCompletion(level.id);
     } else {
       setGuessFeedback('Nesprávna odpoveď. Skús znova!');
     }
   };
 
-  const handleNextLevel = () => {
-    setCurrentLevelIndex(prev => prev + 1);
+  const saveCompletion = async (levelId: number) => {
+    try {
+      const completed = await AsyncStorage.getItem('completed_word_search_levels');
+      const completedSet = completed ? new Set(JSON.parse(completed)) : new Set();
+      completedSet.add(levelId);
+      await AsyncStorage.setItem('completed_word_search_levels', JSON.stringify(Array.from(completedSet)));
+      // Also remove the in-progress save file as the level is now complete
+      await AsyncStorage.removeItem(`word_search_progress_${levelId}`);
+    } catch (error) {
+      console.error('Failed to save completed level.', error);
+    }
+  };
+
+  const handleGoBack = () => {
+    navigation.goBack();
   };
   
+  if (isLoading) {
+    return (
+        <View style={[styles.container, {justifyContent: 'center'}]}>
+            <ActivityIndicator size="large" color="#ff4500" />
+        </View>
+    )
+  }
+
   return (
     <View style={styles.container}>
-        <Modal
-            transparent={true}
-            visible={isLevelComplete}
-            animationType="fade"
-        >
-            <View style={styles.modalContainer}>
-                <View style={styles.modalContent}>
-                    <LottieView
-                        source={require('../assets/reminder.json')} // Or a success animation
-                        autoPlay
-                        loop={false}
-                        style={styles.lottie}
-                    />
-                    <Text style={styles.modalTitle}>Level splnený!</Text>
-                    <Text style={styles.tajnickaText}>{tajnicka}</Text>
-                    <TouchableOpacity style={styles.modalButton} onPress={handleNextLevel}>
-                        <Text style={styles.modalButtonText}>Ďalší level</Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
-        </Modal>
-
       <Modal
         transparent={true}
         visible={isTajnickaGuessed}
@@ -322,8 +370,8 @@ const WordSearchScreen = () => {
             />
             <Text style={styles.modalTitle}>Správne!</Text>
             <Text style={styles.tajnickaText}>{solvedSentence}</Text>
-            <TouchableOpacity style={styles.modalButton} onPress={handleNextLevel}>
-              <Text style={styles.modalButtonText}>Ďalší level</Text>
+            <TouchableOpacity style={styles.modalButton} onPress={handleGoBack}>
+              <Text style={styles.modalButtonText}>Naspäť na výber</Text>
             </TouchableOpacity>
           </View>
         </View>
