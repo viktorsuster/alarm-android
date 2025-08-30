@@ -13,6 +13,7 @@ import WordSearchScreen from '../screens/WordSearchScreen';
 import WordSearchLevelSelectionScreen from '../screens/WordSearchLevelSelectionScreen';
 import MemoryTrainerScreen from '../screens/MemoryTrainerScreen';
 import SortPuzzleScreen from '../screens/SortPuzzleScreen';
+import Game2048Screen from '../screens/Game2048Screen';
 
 export type Level = {
   id: number;
@@ -31,6 +32,7 @@ export type GamesStackParamList = {
   WordSearch: { level: Level };
   WordSearchLevelSelection: undefined;
   MemoryTrainer: undefined;
+  Game2048: undefined;
 };
 
 export type RootTabParamList = {
@@ -57,6 +59,7 @@ const GamesStackNavigator = () => {
       <GamesStack.Screen name="WordSearch" component={WordSearchScreen} options={{ title: 'Osemsmerovka' }} />
       <GamesStack.Screen name="MemoryTrainer" component={MemoryTrainerScreen} options={{ headerShown: false }} />
       <GamesStack.Screen name="SortPuzzle" component={SortPuzzleScreen} options={{ headerShown: false }} />
+      <GamesStack.Screen name="Game2048" component={Game2048Screen} options={{ headerShown: false }} />
     </GamesStack.Navigator>
   );
 }
@@ -113,7 +116,7 @@ const AppNavigator = () => {
           component={GamesStackNavigator}
           options={({ route }) => {
             const routeName = getFocusedRouteNameFromRoute(route) ?? 'GamesList';
-            const screensWithoutTabBar = ['WordSearch', 'MemoryTrainer', 'SortPuzzle'];
+            const screensWithoutTabBar = ['WordSearch', 'MemoryTrainer', 'SortPuzzle', 'Game2048'];
             return {
               headerShown: false,
               tabBarLabel: 'Hry',
