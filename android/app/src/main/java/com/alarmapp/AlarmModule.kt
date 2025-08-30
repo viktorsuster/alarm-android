@@ -41,6 +41,27 @@ class AlarmModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
     }
 
     @ReactMethod
+    fun cancelAlarm(id: String, promise: Promise) {
+        val context = reactApplicationContext
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val intent = Intent(context, AlarmReceiver::class.java)
+        val requestCode = id.hashCode()
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            requestCode,
+            intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        
+        try {
+            alarmManager.cancel(pendingIntent)
+            promise.resolve(true)
+        } catch (e: Exception) {
+            promise.reject("CANCEL_ALARM_ERROR", "Could not cancel alarm", e)
+        }
+    }
+
+    @ReactMethod
     fun stopAlarm(promise: Promise) {
         try {
             val context = reactApplicationContext

@@ -1,16 +1,16 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Alert, NativeModules, Platform, PermissionsAndroid, StatusBar, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
-import { Button, Text, IconButton, TextInput, TouchableRipple, Divider, Modal, Portal } from 'react-native-paper';
+import { View, StyleSheet, Alert, NativeModules, Platform, PermissionsAndroid, StatusBar, TouchableOpacity, ScrollView, Dimensions, FlatList } from 'react-native';
+import { Button, Text, IconButton, TextInput, TouchableRipple, Divider, Modal, Portal, FAB } from 'react-native-paper';
 import DatePicker from 'react-native-date-picker';
 import Sound from 'react-native-sound';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import SavedAlarmsModal, { Alarm } from '../components/SavedAlarmsModal';
 import SuccessModal from '../components/SuccessModal';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { RootTabParamList } from '../navigation/AppNavigator';
+import { useFocusEffect } from '@react-navigation/native';
 
 // Povoľte prehrávanie zvuku aj v tichom režime
 Sound.setCategory('Playback');
@@ -31,6 +31,13 @@ const SOUNDS = [
 
 const SAVED_ALARMS_KEY = 'saved_alarms';
 
+export interface Alarm {
+    id: string;
+    timestamp: number;
+    message: string;
+    soundName: string;
+}
+
 type Props = BottomTabScreenProps<RootTabParamList, 'Alarm'>;
 
 const AlarmScreen = ({ navigation, route }: Props) => {
@@ -41,13 +48,27 @@ const AlarmScreen = ({ navigation, route }: Props) => {
   const [playingSoundInstance, setPlayingSoundInstance] = useState<Sound | null>(null);
   const [currentlyPlayingSoundName, setCurrentlyPlayingSoundName] = useState<string | null>(null);
   const [isSoundModalVisible, setIsSoundModalVisible] = useState(false);
-  const [isMessageModalVisible, setIsMessageModalVisible] = useState(false);
-  const [tempMessage, setTempMessage] = useState('');
-  const [isSavedAlarmsModalVisible, setIsSavedAlarmsModalVisible] = useState(false);
   const [editingAlarmId, setEditingAlarmId] = useState<string | null>(null);
   const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [isAddEditModalVisible, setIsAddEditModalVisible] = useState(false);
+  const [savedAlarms, setSavedAlarms] = useState<Alarm[]>([]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const loadAlarms = async () => {
+        const alarmsJson = await AsyncStorage.getItem(SAVED_ALARMS_KEY);
+        if (alarmsJson) {
+          const alarms: Alarm[] = JSON.parse(alarmsJson);
+          alarms.sort((a, b) => a.timestamp - b.timestamp);
+          setSavedAlarms(alarms);
+        } else {
+          setSavedAlarms([]);
+        }
+      };
+      loadAlarms();
+    }, [])
+  );
 
   const handleSoundPreview = (soundName: string) => {
     if (playingSoundInstance) {
@@ -133,25 +154,34 @@ const AlarmScreen = ({ navigation, route }: Props) => {
     hideSoundModal();
   };
 
-  const showMessageModal = () => {
-    setTempMessage(message);
-    setIsMessageModalVisible(true);
-  };
-
-  const hideMessageModal = () => setIsMessageModalVisible(false);
-
-  const handleSaveMessage = () => {
-    setMessage(tempMessage);
-    hideMessageModal();
-  };
-
   const handleEditAlarm = (alarm: Alarm) => {
     setDate(new Date(alarm.timestamp));
     setMessage(alarm.message);
     setSelectedSound(alarm.soundName);
     setEditingAlarmId(alarm.id);
-    setIsSavedAlarmsModalVisible(false);
     setIsAddEditModalVisible(true);
+  };
+
+  const handleDeleteAlarm = (alarmId: string) => {
+    Alert.alert(
+      'Zmazať pripomienku',
+      'Naozaj chcete natrvalo zmazať túto pripomienku?',
+      [
+        { text: 'Zrušiť', style: 'cancel' },
+        {
+          text: 'Zmazať',
+          style: 'destructive',
+          onPress: async () => {
+            if (Platform.OS === 'android') {
+                await AlarmModule.cancelAlarm(alarmId);
+            }
+            const newAlarms = savedAlarms.filter(alarm => alarm.id !== alarmId);
+            await AsyncStorage.setItem(SAVED_ALARMS_KEY, JSON.stringify(newAlarms));
+            setSavedAlarms(newAlarms);
+          }
+        }
+      ]
+    );
   };
 
   const handleSetAlarm = async () => {
@@ -181,7 +211,10 @@ const AlarmScreen = ({ navigation, route }: Props) => {
         newAlarms = [...currentAlarms, alarmData];
       }
       
-      await AsyncStorage.setItem(SAVED_ALARMS_KEY, JSON.stringify(newAlarms));
+      const newAlarmsSorted = newAlarms.sort((a, b) => a.timestamp - b.timestamp);
+      await AsyncStorage.setItem(SAVED_ALARMS_KEY, JSON.stringify(newAlarmsSorted));
+      setSavedAlarms(newAlarmsSorted);
+      
       await AlarmModule.setAlarm(alarmData.id, alarmData.timestamp, alarmData.soundName, alarmData.message);
       
       setSuccessMessage(`Pripomienka bola nastavená na ${date.toLocaleString('sk-SK')}`);
@@ -193,6 +226,21 @@ const AlarmScreen = ({ navigation, route }: Props) => {
       Alert.alert('Chyba', `Nepodarilo sa nastaviť alarm. (${error.message})`);
     }
   };
+
+  const renderAlarmItem = ({ item }: { item: Alarm }) => (
+    <View style={styles.itemContainer}>
+        <View style={styles.itemTextContainer}>
+            <Text style={styles.itemDate}>
+                {new Date(item.timestamp).toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' })}
+            </Text>
+            <Text style={styles.itemMessage}>{item.message}</Text>
+        </View>
+        <View style={styles.itemActions}>
+            <IconButton icon="pencil-outline" size={24} onPress={() => handleEditAlarm(item)} iconColor="#B0B0B0"/>
+            <IconButton icon="delete-outline" size={24} onPress={() => handleDeleteAlarm(item.id)} iconColor="#ff4500"/>
+        </View>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -213,15 +261,24 @@ const AlarmScreen = ({ navigation, route }: Props) => {
                       {date.toLocaleDateString('sk-SK', { weekday: 'long', day: 'numeric', month: 'long' })}
                   </Text>
               </TouchableOpacity>
-              <TouchableRipple onPress={showMessageModal} style={styles.modalOptionButton}>
-                  <View style={styles.messageButtonContent}>
-                      <View>
-                          <Text style={styles.messageLabel}>Text pripomienky</Text>
-                          <Text style={styles.messageValue} numberOfLines={1}>{message || 'Žiadny text'}</Text>
-                      </View>
-                      <Icon name="chevron-right" size={24} color="#E0E0E0" />
-                  </View>
-              </TouchableRipple>
+              <TextInput
+                  label="Text pripomienky"
+                  value={message}
+                  onChangeText={setMessage}
+                  style={styles.messageInput}
+                  mode="outlined"
+                  outlineColor="#333"
+                  activeOutlineColor="#ff4500"
+                  theme={{
+                      colors: {
+                          primary: '#ff4500',
+                          text: '#FFFFFF',
+                          placeholder: '#B0B0B0',
+                          background: '#1E1E1E',
+                      },
+                      dark: true,
+                  }}
+              />
               <TouchableRipple onPress={showSoundModal} style={styles.modalOptionButton}>
                   <View style={styles.soundPickerButtonContent}>
                       <View>
@@ -260,44 +317,44 @@ const AlarmScreen = ({ navigation, route }: Props) => {
           </ScrollView>
         </Modal>
 
-        {/* Message Input Modal */}
-        <Modal visible={isMessageModalVisible} onDismiss={hideMessageModal} contentContainerStyle={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Správa pripomienky</Text>
-              <IconButton icon="close" size={24} onPress={hideMessageModal} iconColor="#B0B0B0" />
-            </View>
-            <View style={styles.messageModalContent}>
-              <TextInput label="Čo ti mám pripomenúť?" value={tempMessage} onChangeText={setTempMessage} style={styles.input} mode="outlined" outlineColor="#333" activeOutlineColor="#ff4500" theme={{ colors: { primary: '#ff4500', text: '#FFFFFF', placeholder: '#B0B0B0', background: '#1E1E1E', }, dark: true, }} />
-              <Button mode="contained" onPress={handleSaveMessage} style={styles.saveButton} labelStyle={styles.saveButtonLabel}>Uložiť</Button>
-            </View>
-        </Modal>
+        {/* Message Input Modal - REMOVED */}
 
-        <SavedAlarmsModal visible={isSavedAlarmsModalVisible} onDismiss={() => setIsSavedAlarmsModalVisible(false)} onEdit={handleEditAlarm} />
-        
         <SuccessModal visible={isSuccessModalVisible} onDismiss={() => setIsSuccessModalVisible(false)} message={successMessage} />
       </Portal>
 
       <StatusBar barStyle="light-content" />
-      <View style={styles.mainContent}>
+      <View style={styles.header}>
         <Text style={styles.greeting}>Nazdar Marek</Text>
-        <IconButton
-          icon="plus-circle-outline"
-          iconColor="#ff4500"
-          size={100}
-          onPress={openNewAlarmModal}
-          style={styles.addButton}
-        />
-        <Text style={styles.addButtonLabel}>Nová pripomienka</Text>
-        <View style={styles.savedAlarmsContainer}>
-            <TouchableRipple onPress={() => setIsSavedAlarmsModalVisible(true)} style={styles.savedAlarmsButton}>
-                <View style={styles.savedAlarmsButtonContent}>
-                    <Icon name="history" size={24} color="#E0E0E0" />
-                    <Text style={styles.savedAlarmsButtonText}>Uložené pripomienky</Text>
-                    <Icon name="chevron-right" size={24} color="#E0E0E0" />
-                </View>
-            </TouchableRipple>
-        </View>
       </View>
+
+      {savedAlarms.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <IconButton
+            icon="plus-circle-outline"
+            iconColor="#ff4500"
+            size={100}
+            onPress={openNewAlarmModal}
+            style={styles.addButton}
+          />
+          <Text style={styles.addButtonLabel}>Nová pripomienka</Text>
+        </View>
+      ) : (
+        <View style={styles.listContainer}>
+            <FlatList
+                data={savedAlarms}
+                renderItem={renderAlarmItem}
+                keyExtractor={item => item.id}
+                ItemSeparatorComponent={() => <Divider style={styles.listDivider}/>}
+                contentContainerStyle={styles.listContentContainer}
+            />
+            <FAB
+                style={styles.fab}
+                icon="plus"
+                onPress={openNewAlarmModal}
+                color="#FFFFFF"
+            />
+        </View>
+      )}
 
       <DatePicker modal open={open} date={date} onConfirm={(selectedDate) => { setOpen(false); setDate(selectedDate); }} onCancel={() => setOpen(false)} title="Vyberte čas a dátum" confirmText="Potvrdiť" cancelText="Zrušiť" theme="dark" />
     </SafeAreaView>
@@ -309,11 +366,29 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#121212',
   },
-  mainContent: {
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 40,
+    paddingBottom: 20,
+  },
+  greeting: {
+    color: '#FFFFFF',
+    fontSize: 32,
+    fontWeight: '700',
+    textAlign: 'center',
+    fontFamily: 'sans-serif-condensed',
+  },
+  emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+  },
+  listContainer: {
+    flex: 1,
+  },
+  listContentContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 100,
   },
   addButton: {
     margin: 20,
@@ -323,22 +398,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     marginTop: -20,
-    marginBottom: 60,
   },
-  savedAlarmsContainer: {
+  fab: {
     position: 'absolute',
-    bottom: 30,
-    left: 20,
-    right: 20,
-  },
-  greeting: {
-    color: '#FFFFFF',
-    fontSize: 32,
-    fontWeight: '700',
-    textAlign: 'center',
-    fontFamily: 'sans-serif-condensed',
-    position: 'absolute',
-    top: 40,
+    margin: 16,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#ff4500',
   },
   addEditModalContainer: {
     backgroundColor: '#121212',
@@ -413,7 +479,6 @@ const styles = StyleSheet.create({
   modalTitle: { color: '#E0E0E0', fontSize: 18, fontWeight: '600' },
   messageModalContent: { padding: 15 },
   input: { backgroundColor: '#1E1E1E' },
-  saveButton: { marginTop: 15, backgroundColor: '#ff4500' },
   saveButtonLabel: { color: '#FFFFFF' },
   soundItemRipple: { paddingHorizontal: 15 },
   soundItem: {
@@ -423,22 +488,35 @@ const styles = StyleSheet.create({
   },
   divider: { backgroundColor: '#333', marginLeft: 54 },
   soundLabel: { flex: 1, color: '#FFFFFF', fontSize: 16, marginLeft: 15 },
-  savedAlarmsButton: {
-    backgroundColor: '#1E1E1E',
-    borderRadius: 15,
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-  },
-  savedAlarmsButtonContent: {
+  itemContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 15,
   },
-  savedAlarmsButtonText: {
+  itemTextContainer: {
+    flex: 1,
+    marginRight: 10,
+  },
+  itemMessage: {
     color: '#FFFFFF',
     fontSize: 16,
-    flex: 1,
-    marginLeft: 15,
+    marginTop: 4,
+  },
+  itemDate: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: 'bold',
+  },
+  itemActions: {
+    flexDirection: 'row',
+  },
+  listDivider: {
+    backgroundColor: '#333',
+  },
+  messageInput: {
+    marginBottom: 15,
+    backgroundColor: '#1E1E1E',
   },
 });
 
