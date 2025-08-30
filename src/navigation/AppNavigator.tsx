@@ -59,7 +59,7 @@ const GamesStackNavigator = () => {
       <GamesStack.Screen name="WordSearch" component={WordSearchScreen} options={{ title: 'Osemsmerovka' }} />
       <GamesStack.Screen name="MemoryTrainer" component={MemoryTrainerScreen} options={{ headerShown: false }} />
       <GamesStack.Screen name="SortPuzzle" component={SortPuzzleScreen} options={{ headerShown: false }} />
-      <GamesStack.Screen name="Game2048" component={Game2048Screen} options={{ headerShown: false }} />
+      <GamesStack.Screen name="Game2048" component={Game2048Screen} options={{ title: 'Beer 2048' }} />
     </GamesStack.Navigator>
   );
 }

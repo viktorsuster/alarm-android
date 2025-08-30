@@ -1,6 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Dimensions, PanResponder, Image, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { View, Text, StyleSheet, Dimensions, PanResponder, Image, TouchableOpacity, Alert, SafeAreaView } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing } from 'react-native-reanimated';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const TILE_IMAGES = {
   2: require('../assets/2048/1.webp'),
@@ -30,9 +33,14 @@ type Tile = {
 
 const Game2048Screen = () => {
   const [tiles, setTiles] = useState<Tile[]>([]);
+  const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [win, setWin] = useState(false);
   const tileIdCounter = useRef(0);
+  const navigation = useNavigation();
+  const isInitialMount = useRef(true);
+
+  const GAME_STATE_KEY = 'game_2048_state';
 
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
@@ -47,18 +55,89 @@ const Game2048Screen = () => {
   });
 
   useEffect(() => {
-    startGame();
-  }, []);
+    navigation.setOptions({
+        headerRight: () => (
+            <TouchableOpacity onPress={handleRefresh} style={{ paddingRight: 10 }}>
+                <Icon name="refresh" size={24} color="white" />
+            </TouchableOpacity>
+        ),
+        title: `Skóre: ${score}`
+    });
+  }, [navigation, score]);
 
-  const startGame = () => {
+  useFocusEffect(
+    useCallback(() => {
+        const loadGameState = async () => {
+            try {
+                const savedState = await AsyncStorage.getItem(GAME_STATE_KEY);
+                if (savedState !== null) {
+                    const { tiles: savedTiles, score: savedScore } = JSON.parse(savedState);
+                    if (savedTiles.length > 0) {
+                        setTiles(savedTiles);
+                        setScore(savedScore);
+                        tileIdCounter.current = Math.max(...savedTiles.map((t: Tile) => t.id)) + 1;
+                    } else {
+                        startGame(false); // Don't clear storage if it's already empty
+                    }
+                } else {
+                    startGame(false);
+                }
+            } catch (e) {
+                console.error("Failed to load game state.", e);
+                startGame(false);
+            }
+        };
+        loadGameState();
+    }, [])
+  );
+
+  useEffect(() => {
+    if (isInitialMount.current) {
+        isInitialMount.current = false;
+        return;
+    }
+    const saveGameState = async () => {
+        try {
+            const gameState = JSON.stringify({ tiles, score });
+            await AsyncStorage.setItem(GAME_STATE_KEY, gameState);
+        } catch (e) {
+            console.error("Failed to save game state.", e);
+        }
+    };
+    if (tiles.length > 0) { // Only save if there's a game in progress
+        saveGameState();
+    }
+  }, [tiles, score]);
+
+
+  const startGame = async (clearStorage = true) => {
+    setScore(0);
     setTiles([]);
     setGameOver(false);
     setWin(false);
     tileIdCounter.current = 0;
+    if (clearStorage) {
+        try {
+            await AsyncStorage.removeItem(GAME_STATE_KEY);
+        } catch (e) {
+            console.error("Failed to clear game state.", e);
+        }
+    }
     setTimeout(() => {
         addRandomTile();
         addRandomTile();
     }, 100);
+  };
+
+  const handleRefresh = () => {
+    Alert.alert(
+      "Reštartovať hru",
+      "Naozaj si želáš začať odznova? Tvoj aktuálny postup bude stratený.",
+      [
+        { text: "Zrušiť", style: "cancel" },
+        { text: "Áno, reštartovať", onPress: () => startGame(), style: 'destructive' }
+      ]
+    );
   };
   
   const addRandomTile = () => {
@@ -186,6 +265,8 @@ const Game2048Screen = () => {
                 }
             }
         }
+        
+        setScore(prev => prev + score);
 
         if (newTiles.some(t => t.value === 2048)) {
             setWin(true);
@@ -221,25 +302,32 @@ const Game2048Screen = () => {
 
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Beer 2048</Text>
-      <View style={styles.gridContainer} {...panResponder.panHandlers}>
-        {Array.from({ length: GRID_SIZE * GRID_SIZE }).map((_, i) => (
-          <View key={i} style={styles.cell} />
-        ))}
-        {tiles.map(tile => (
-          <TileComponent key={tile.id} tile={tile} />
-        ))}
+    <SafeAreaView style={styles.container}>
+      <View style={styles.topSection}>
+        <Text style={styles.explanationTitle}>Pivné 2048 🍻</Text>
+        <Text style={styles.explanationText}>
+          Ahoj, Marek! Vitaj v hre Pivné 2048. Posúvaj prstom po obrazovke (hore, dole, doľava, doprava), aby si pohol všetkými dielikmi naraz. Keď sa dva rovnaké obrázky dotknú, spoja sa do nového. Cieľom je prepracovať sa od vody až k vytúženej base piva. Po každom ťahu pribudne nový dielik, takže plánuj dopredu. Hra končí, keď je plocha plná a nemáš kam pohnúť. Veľa šťastia!
+        </Text>
+      </View>
+      <View style={styles.bottomSection}>
+        <View style={styles.gridContainer} {...panResponder.panHandlers}>
+          {Array.from({ length: GRID_SIZE * GRID_SIZE }).map((_, i) => (
+            <View key={i} style={styles.cell} />
+          ))}
+          {tiles.map(tile => (
+            <TileComponent key={tile.id} tile={tile} />
+          ))}
+        </View>
       </View>
       {(gameOver || win) && (
         <View style={styles.overlay}>
             <Text style={styles.overlayText}>{win ? "Vyhral si!" : "Koniec hry"}</Text>
-            <TouchableOpacity onPress={startGame} style={styles.retryButton}>
+            <TouchableOpacity onPress={() => startGame()} style={styles.retryButton}>
                 <Text style={styles.retryButtonText}>Hrať znova</Text>
             </TouchableOpacity>
         </View>
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -276,10 +364,33 @@ const TileComponent = ({ tile }: { tile: Tile }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#faf8ef',
+    backgroundColor: '#bbada0',
+  },
+  topSection: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 20,
   },
+  bottomSection: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingBottom: 20, // Reduced padding
+  },
+  explanationTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: 'white',
+    textAlign: 'center',
+    marginBottom: 15,
+  },
+  explanationText: {
+    fontSize: 16,
+    color: '#eee4da',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  // Removed custom header styles
   title: {
     fontSize: 40,
     fontWeight: 'bold',
@@ -344,3 +455,4 @@ const styles = StyleSheet.create({
 });
 
 export default Game2048Screen;
+

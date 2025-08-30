@@ -12,10 +12,10 @@ type Props = {
 
 // Dummy data for games
 const GAMES = [
+  { id: '2', name: 'Pivné 2048', screen: 'Game2048' as const, icon: 'glass-mug-variant' },
   { id: '4', name: 'Osemsmerovka', screen: 'WordSearchLevelSelection' as const, icon: 'format-letter-matches' },
   { id: '5', name: 'Pexeso', screen: 'MemoryTrainer' as const, icon: 'brain' },
   { id: '1', name: 'Triedenie Smajlíkov', screen: 'SortPuzzle' as const, icon: 'water-pump' },
-  { id: '2', name: 'Beer 2048', screen: 'Game2048' as const, icon: 'gamepad-variant' },
 ];
 
 const GamesScreen = ({ navigation }: Props) => {
