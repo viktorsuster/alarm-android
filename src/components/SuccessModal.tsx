@@ -27,7 +27,7 @@ const SuccessModal: React.FC<SuccessModalProps> = ({ visible, onDismiss, message
                     style={styles.button}
                     labelStyle={styles.buttonLabel}
                 >
-                    OK
+                    Paráda!
                 </Button>
             </Modal>
         </Portal>

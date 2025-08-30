@@ -10,12 +10,13 @@ import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.bridge.ReadableArray
 
 class AlarmModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
     override fun getName() = "AlarmModule"
 
     @ReactMethod
-    fun setAlarm(id: String, timestamp: Double, soundName: String, message: String, promise: Promise) {
+    fun setAlarm(id: String, timestamp: Double, soundName: String, message: String, repeat: String?, days: ReadableArray?, promise: Promise) {
         val context = reactApplicationContext
 
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
@@ -23,6 +24,11 @@ class AlarmModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
             putExtra("ALARM_ID", id)
             putExtra("ALARM_SOUND_NAME", soundName)
             putExtra("ALARM_MESSAGE", message)
+            putExtra("ALARM_REPEAT", repeat)
+            days?.let {
+                val daysList = it.toArrayList().map { day -> (day as Double).toInt() }
+                putExtra("ALARM_DAYS", daysList.toIntArray())
+            }
         }
         
         val requestCode = id.hashCode()

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Alert, NativeModules, Platform, PermissionsAndroid, StatusBar, TouchableOpacity, ScrollView, Dimensions, FlatList } from 'react-native';
-import { Button, Text, IconButton, TextInput, TouchableRipple, Divider, Modal, Portal, FAB } from 'react-native-paper';
+import { Button, Text, IconButton, TextInput, TouchableRipple, Divider, Modal, Portal, FAB, Switch, Chip } from 'react-native-paper';
 import DatePicker from 'react-native-date-picker';
 import Sound from 'react-native-sound';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -36,9 +36,14 @@ export interface Alarm {
     timestamp: number;
     message: string;
     soundName: string;
+    enabled: boolean;
+    repeat?: 'daily' | 'weekly';
+    days?: number[];
 }
 
 type Props = BottomTabScreenProps<RootTabParamList, 'Alarm'>;
+
+const WEEK_DAYS = ['P', 'U', 'S', 'Š', 'P', 'S', 'N'];
 
 const AlarmScreen = ({ navigation, route }: Props) => {
   const [date, setDate] = useState(new Date());
@@ -53,13 +58,16 @@ const AlarmScreen = ({ navigation, route }: Props) => {
   const [successMessage, setSuccessMessage] = useState('');
   const [isAddEditModalVisible, setIsAddEditModalVisible] = useState(false);
   const [savedAlarms, setSavedAlarms] = useState<Alarm[]>([]);
+  const [repeat, setRepeat] = useState<'none' | 'daily' | 'weekly'>('none');
+  const [selectedDays, setSelectedDays] = useState<number[]>([]);
 
   useFocusEffect(
     React.useCallback(() => {
       const loadAlarms = async () => {
         const alarmsJson = await AsyncStorage.getItem(SAVED_ALARMS_KEY);
         if (alarmsJson) {
-          const alarms: Alarm[] = JSON.parse(alarmsJson);
+          let alarms: Alarm[] = JSON.parse(alarmsJson);
+          alarms = alarms.map(alarm => ({ ...alarm, enabled: alarm.enabled ?? true }));
           alarms.sort((a, b) => a.timestamp - b.timestamp);
           setSavedAlarms(alarms);
         } else {
@@ -69,6 +77,47 @@ const AlarmScreen = ({ navigation, route }: Props) => {
       loadAlarms();
     }, [])
   );
+
+  const handleConfirmDate = (selectedDate: Date) => {
+    setOpen(false);
+    if (repeat === 'none') {
+        setDate(selectedDate);
+    } else {
+        const newDate = new Date(date);
+        newDate.setHours(selectedDate.getHours());
+        newDate.setMinutes(selectedDate.getMinutes());
+        setDate(newDate);
+    }
+  };
+
+  const handleToggleAlarm = async (alarmId: string) => {
+    const newAlarms = savedAlarms.map(alarm => {
+        if (alarm.id === alarmId) {
+            return { ...alarm, enabled: !alarm.enabled };
+        }
+        return alarm;
+    });
+
+    const toggledAlarm = newAlarms.find(alarm => alarm.id === alarmId);
+    if (!toggledAlarm) return;
+
+    if (Platform.OS === 'android') {
+        if (toggledAlarm.enabled) {
+            if (toggledAlarm.timestamp <= Date.now()) {
+                Alert.alert('Chyba', 'Čas tejto pripomienky už uplynul. Upravte ju, prosím, ak ju chcete znovu aktivovať.');
+                const originalAlarms = savedAlarms;
+                setSavedAlarms(originalAlarms);
+                return;
+            }
+            await AlarmModule.setAlarm(toggledAlarm.id, toggledAlarm.timestamp, toggledAlarm.soundName, toggledAlarm.message, toggledAlarm.repeat, toggledAlarm.days);
+        } else {
+            await AlarmModule.cancelAlarm(toggledAlarm.id);
+        }
+    }
+
+    await AsyncStorage.setItem(SAVED_ALARMS_KEY, JSON.stringify(newAlarms));
+    setSavedAlarms(newAlarms);
+  };
 
   const handleSoundPreview = (soundName: string) => {
     if (playingSoundInstance) {
@@ -130,6 +179,8 @@ const AlarmScreen = ({ navigation, route }: Props) => {
     setDate(new Date());
     setMessage('');
     setSelectedSound(SOUNDS[0].value);
+    setRepeat('none');
+    setSelectedDays([]);
     setIsAddEditModalVisible(true);
   };
 
@@ -158,18 +209,20 @@ const AlarmScreen = ({ navigation, route }: Props) => {
     setDate(new Date(alarm.timestamp));
     setMessage(alarm.message);
     setSelectedSound(alarm.soundName);
+    setRepeat(alarm.repeat || 'none');
+    setSelectedDays(alarm.days || []);
     setEditingAlarmId(alarm.id);
     setIsAddEditModalVisible(true);
   };
 
   const handleDeleteAlarm = (alarmId: string) => {
     Alert.alert(
-      'Zmazať pripomienku',
-      'Naozaj chcete natrvalo zmazať túto pripomienku?',
+      'Chceš vymazac?',
+      'Isto?',
       [
         { text: 'Zrušiť', style: 'cancel' },
         {
-          text: 'Zmazať',
+          text: 'Vymaž do piči',
           style: 'destructive',
           onPress: async () => {
             if (Platform.OS === 'android') {
@@ -178,6 +231,7 @@ const AlarmScreen = ({ navigation, route }: Props) => {
             const newAlarms = savedAlarms.filter(alarm => alarm.id !== alarmId);
             await AsyncStorage.setItem(SAVED_ALARMS_KEY, JSON.stringify(newAlarms));
             setSavedAlarms(newAlarms);
+            hideAddEditModal();
           }
         }
       ]
@@ -186,7 +240,58 @@ const AlarmScreen = ({ navigation, route }: Props) => {
 
   const handleSetAlarm = async () => {
     try {
-      if (date.getTime() <= Date.now()) {
+      let alarmTimestamp = date.getTime();
+      let effectiveDate = new Date(date);
+
+      if (repeat !== 'none') {
+        const now = new Date();
+        effectiveDate.setSeconds(0);
+        effectiveDate.setMilliseconds(0);
+
+        if (repeat === 'daily') {
+          if (effectiveDate.getTime() <= now.getTime()) {
+            effectiveDate.setDate(effectiveDate.getDate() + 1);
+          }
+        } else if (repeat === 'weekly') {
+          if (selectedDays.length === 0) {
+            Alert.alert('Chyba', 'Pre týždenné opakovanie musíte zvoliť aspoň jeden deň.');
+            return;
+          }
+          
+          const currentDay = (now.getDay() + 6) % 7; // Pondelok = 0
+          const sortedDays = [...selectedDays].sort((a, b) => a - b);
+          let dayOffset = -1;
+
+          for (const day of sortedDays) {
+            if (day > currentDay) {
+              dayOffset = day - currentDay;
+              break;
+            }
+            if (day === currentDay) {
+              const potentialTimestamp = new Date(now);
+              potentialTimestamp.setHours(effectiveDate.getHours());
+              potentialTimestamp.setMinutes(effectiveDate.getMinutes());
+              if (potentialTimestamp.getTime() > now.getTime()) {
+                dayOffset = 0;
+                break;
+              }
+            }
+          }
+
+          if (dayOffset === -1) {
+            const firstDayNextWeek = sortedDays[0];
+            dayOffset = (7 - currentDay) + firstDayNextWeek;
+          }
+
+          effectiveDate = new Date(now);
+          effectiveDate.setDate(now.getDate() + dayOffset);
+          effectiveDate.setHours(date.getHours());
+          effectiveDate.setMinutes(date.getMinutes());
+        }
+        alarmTimestamp = effectiveDate.getTime();
+      }
+
+      if (alarmTimestamp <= Date.now() && repeat === 'none') {
         Alert.alert('Chyba', 'Vybraný čas musí byť v budúcnosti.');
         return;
       }
@@ -199,9 +304,12 @@ const AlarmScreen = ({ navigation, route }: Props) => {
 
       const alarmData: Alarm = {
         id: editingAlarmId || Date.now().toString(),
-        timestamp: date.getTime(),
+        timestamp: alarmTimestamp,
         soundName: selectedSound,
         message: message || 'Budík',
+        enabled: true,
+        repeat: repeat === 'none' ? undefined : repeat,
+        days: repeat === 'weekly' ? selectedDays : undefined,
       };
 
       let newAlarms: Alarm[];
@@ -215,9 +323,26 @@ const AlarmScreen = ({ navigation, route }: Props) => {
       await AsyncStorage.setItem(SAVED_ALARMS_KEY, JSON.stringify(newAlarmsSorted));
       setSavedAlarms(newAlarmsSorted);
       
-      await AlarmModule.setAlarm(alarmData.id, alarmData.timestamp, alarmData.soundName, alarmData.message);
+      await AlarmModule.setAlarm(alarmData.id, alarmData.timestamp, alarmData.soundName, alarmData.message, alarmData.repeat, alarmData.days);
       
-      setSuccessMessage(`Pripomienka bola nastavená na ${date.toLocaleString('sk-SK')}`);
+      const timeString = effectiveDate.toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' });
+      let finalSuccessMessage = '';
+
+      switch (repeat) {
+        case 'daily':
+          finalSuccessMessage = `Pripomienka je nastavená denne na ${timeString}.`;
+          break;
+        case 'weekly':
+          const dayNames = ['Po', 'Ut', 'St', 'Št', 'Pi', 'So', 'Ne'];
+          const selectedDayNames = selectedDays.map(d => dayNames[d]).join(', ');
+          finalSuccessMessage = `Pripomienka je nastavená na dni ${selectedDayNames} na ${timeString}.`;
+          break;
+        default: // 'none'
+          finalSuccessMessage = `Pripomienka je nastavená na ${effectiveDate.toLocaleString('sk-SK', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}.`;
+          break;
+      }
+      
+      setSuccessMessage(finalSuccessMessage);
       setIsSuccessModalVisible(true);
       hideAddEditModal();
       
@@ -227,27 +352,53 @@ const AlarmScreen = ({ navigation, route }: Props) => {
     }
   };
 
+  const toggleDay = (dayIndex: number) => {
+    setSelectedDays(prev => 
+      prev.includes(dayIndex) 
+        ? prev.filter(d => d !== dayIndex) 
+        : [...prev, dayIndex].sort((a, b) => a - b)
+    );
+  };
+
   const renderAlarmItem = ({ item }: { item: Alarm }) => (
-    <View style={styles.itemContainer}>
-        <View style={styles.itemTextContainer}>
-            <Text style={styles.itemDate}>
-                {new Date(item.timestamp).toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' })}
-            </Text>
-            <Text style={styles.itemFullDate}>
-                {new Date(item.timestamp).toLocaleDateString('sk-SK', { weekday: 'long', day: 'numeric', month: 'long' })}
-            </Text>
-            <Text style={styles.itemMessage}>{item.message}</Text>
+    <TouchableRipple onPress={() => handleEditAlarm(item)} style={styles.itemRipple}>
+        <View style={styles.itemContainer}>
+            <View style={styles.itemTextContainer}>
+                <Text style={[styles.itemDate, !item.enabled && styles.disabledText]}>
+                    {new Date(item.timestamp).toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' })}
+                </Text>
+                <Text style={[styles.itemFullDate, !item.enabled && styles.disabledText]}>
+                    {item.repeat ? getRepeatText(item) : new Date(item.timestamp).toLocaleDateString('sk-SK', { weekday: 'long', day: 'numeric', month: 'long' })}
+                </Text>
+                <Text style={[styles.itemMessage, !item.enabled && styles.disabledText]}>{item.message}</Text>
+            </View>
+            <View style={styles.itemActions}>
+                <Switch value={item.enabled} onValueChange={() => handleToggleAlarm(item.id)} color="#ff4500" />
+            </View>
         </View>
-        <View style={styles.itemActions}>
-            <TouchableOpacity style={[styles.actionButton, styles.editButton]} onPress={() => handleEditAlarm(item)}>
-                <Icon name="pencil-outline" size={20} color="#FFFFFF"/>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.actionButton, styles.deleteButton]} onPress={() => handleDeleteAlarm(item.id)}>
-                <Icon name="delete-outline" size={20} color="#FFFFFF"/>
-            </TouchableOpacity>
-        </View>
-    </View>
+    </TouchableRipple>
   );
+
+  const getRepeatText = (item: Alarm) => {
+    let repeatText = 'Jednorazová';
+    if (item.repeat === 'daily') {
+        repeatText = 'Denne';
+    } else if (item.repeat === 'weekly' && item.days && item.days.length > 0) {
+        const dayNames = ['Po', 'Ut', 'St', 'Št', 'Pi', 'So', 'Ne'];
+        repeatText = item.days.map(d => dayNames[d]).join(', ');
+        if (item.days.length === 7) repeatText = 'Denne';
+        else if (item.days.length === 2 && item.days.includes(5) && item.days.includes(6)) repeatText = 'Víkendy';
+        else if (item.days.length === 5 && !item.days.includes(5) && !item.days.includes(6)) repeatText = 'Pracovné dni';
+    }
+    return repeatText;
+  }
+
+const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Dobré ráno, Marek 🙂';
+    if (hour < 18) return 'Pekný deň, Marek 👋';
+    return 'Príjemný večer, Marek 🌙';
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -264,10 +415,33 @@ const AlarmScreen = ({ navigation, route }: Props) => {
                   <Text style={styles.timeText}>
                       {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </Text>
-                  <Text style={styles.dateText}>
-                      {date.toLocaleDateString('sk-SK', { weekday: 'long', day: 'numeric', month: 'long' })}
-                  </Text>
+                  {repeat === 'none' && (
+                    <Text style={styles.dateText}>
+                        {date.toLocaleDateString('sk-SK', { weekday: 'long', day: 'numeric', month: 'long' })}
+                    </Text>
+                  )}
               </TouchableOpacity>
+              <View style={styles.divider} />
+
+              <Text style={styles.sectionTitle}>Opakovanie</Text>
+              <View style={styles.chipContainer}>
+                  <Chip selected={repeat === 'none'} onPress={() => setRepeat('none')} style={styles.chip}>Neopakovať</Chip>
+                  <Chip selected={repeat === 'daily'} onPress={() => setRepeat('daily')} style={styles.chip}>Denne</Chip>
+                  <Chip selected={repeat === 'weekly'} onPress={() => setRepeat('weekly')} style={styles.chip}>Týždenne</Chip>
+              </View>
+
+              {repeat === 'weekly' && (
+                <View style={styles.weekDaysContainer}>
+                  {WEEK_DAYS.map((day, index) => (
+                    <TouchableOpacity key={index} onPress={() => toggleDay(index)} style={[styles.dayButton, selectedDays.includes(index) && styles.dayButtonSelected]}>
+                      <Text style={[styles.dayText, selectedDays.includes(index) && styles.dayTextSelected]}>{day}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+              <View style={styles.divider} />
+              
               <TextInput
                   label="Text pripomienky"
                   value={message}
@@ -295,8 +469,19 @@ const AlarmScreen = ({ navigation, route }: Props) => {
                       <Icon name="chevron-right" size={24} color="#E0E0E0" />
                   </View>
               </TouchableRipple>
+              {editingAlarmId && (
+                <Button 
+                    mode="outlined" 
+                    onPress={() => handleDeleteAlarm(editingAlarmId)} 
+                    style={styles.deleteModalButton}
+                    labelStyle={styles.deleteModalButtonLabel}
+                    icon="delete-outline"
+                >
+                    Zmazať pripomienku
+                </Button>
+              )}
               <Button mode="contained" onPress={handleSetAlarm} style={styles.finalSaveButton} labelStyle={styles.saveButtonLabel}>
-                  Uložiť pripomienku
+                  {editingAlarmId ? 'Uložiť zmeny' : 'Uložiť pripomienku'}
               </Button>
             </View>
           </ScrollView>
@@ -331,7 +516,7 @@ const AlarmScreen = ({ navigation, route }: Props) => {
 
       <StatusBar barStyle="light-content" />
       <View style={styles.header}>
-        <Text style={styles.greeting}>Nazdar Marek</Text>
+        <Text style={styles.greeting}>{getGreeting()}</Text>
       </View>
 
       {savedAlarms.length === 0 ? (
@@ -363,7 +548,7 @@ const AlarmScreen = ({ navigation, route }: Props) => {
         </View>
       )}
 
-      <DatePicker modal open={open} date={date} onConfirm={(selectedDate) => { setOpen(false); setDate(selectedDate); }} onCancel={() => setOpen(false)} title="Vyberte čas a dátum" confirmText="Potvrdiť" cancelText="Zrušiť" theme="dark" />
+      <DatePicker modal open={open} date={date} onConfirm={handleConfirmDate} onCancel={() => setOpen(false)} title="Vyberte čas a dátum" confirmText="Potvrdiť" cancelText="Zrušiť" theme="dark" mode={repeat === 'none' ? 'datetime' : 'time'} />
     </SafeAreaView>
   );
 };
@@ -450,6 +635,58 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginTop: 20,
   },
+  deleteModalButton: {
+    borderColor: '#ff4500',
+    borderWidth: 1,
+    paddingVertical: 8,
+    borderRadius: 10,
+    marginTop: 10,
+  },
+  deleteModalButtonLabel: {
+    color: '#ff4500',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#333',
+    marginVertical: 15,
+  },
+  sectionTitle: {
+    color: '#E0E0E0',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 10,
+  },
+  chipContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 15,
+  },
+  chip: {
+    backgroundColor: '#2C2C2E',
+  },
+  weekDaysContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 15,
+  },
+  dayButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#2C2C2E',
+  },
+  dayButtonSelected: {
+    backgroundColor: '#ff4500',
+  },
+  dayText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  dayTextSelected: {
+    color: '#FFFFFF',
+  },
   messageButtonContent: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -493,13 +730,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 15,
   },
-  divider: { backgroundColor: '#333', marginLeft: 54 },
   soundLabel: { flex: 1, color: '#FFFFFF', fontSize: 16, marginLeft: 15 },
+  itemRipple: {
+    borderRadius: 10,
+  },
   itemContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 15,
+    paddingHorizontal: 20,
   },
   itemTextContainer: {
     flex: 1,
@@ -522,6 +762,7 @@ const styles = StyleSheet.create({
   itemActions: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginLeft: 10,
   },
   actionButton: {
     marginLeft: 10,
@@ -540,6 +781,9 @@ const styles = StyleSheet.create({
   messageInput: {
     marginBottom: 15,
     backgroundColor: '#1E1E1E',
+  },
+  disabledText: {
+    color: '#888',
   },
 });
 
