@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Alert, NativeModules, Platform, PermissionsAndroid, StatusBar, TouchableOpacity, ScrollView } from 'react-native';
 import { Button, Text, IconButton, TextInput, TouchableRipple, Divider, Modal, Portal } from 'react-native-paper';
@@ -9,8 +10,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import SavedAlarmsModal, { Alarm } from '../components/SavedAlarmsModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 import SuccessModal from '../components/SuccessModal';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../navigation/AppNavigator';
+import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import { RootTabParamList } from '../navigation/AppNavigator';
 
 // Povoľte prehrávanie zvuku aj v tichom režime
 Sound.setCategory('Playback');
@@ -22,18 +23,15 @@ const SOUNDS = [
     { label: 'Zvuk 2', value: 'alarm_sound_2' },
     { label: 'Zvuk 3', value: 'alarm_sound_3' },
     { label: 'Zvuk 4', value: 'alarm_sound_4' },
+    { label: 'HATATA', value: 'alarm_sound_5' },
 ];
 
 const ALARM_KEY = 'single_alarm';
 const SAVED_ALARMS_KEY = 'saved_alarms';
 
-type AlarmScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Alarm'>;
+type Props = BottomTabScreenProps<RootTabParamList, 'Alarm'>;
 
-type Props = {
-  navigation: AlarmScreenNavigationProp;
-};
-
-const AlarmScreen = ({ navigation }: Props) => {
+const AlarmScreen = ({ navigation, route }: Props) => {
   const [date, setDate] = useState(new Date());
   const [open, setOpen] = useState(false);
   const [selectedSound, setSelectedSound] = useState(SOUNDS[0].value);
@@ -335,15 +333,7 @@ const AlarmScreen = ({ navigation }: Props) => {
 
       <StatusBar barStyle="light-content" />
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.header}>
-          <Text style={styles.greeting}>Nazdar Marek</Text>
-          <IconButton
-              icon="baby-face-outline"
-              iconColor="#E0E0E0"
-              size={30}
-              onPress={() => navigation.navigate('Gallery')}
-          />
-        </View>
+        <Text style={styles.greeting}>Nazdar Marek</Text>
         <Icon name="skull-crossbones" size={80} color="#E0E0E0" style={styles.skullIcon} />
         
         <View style={styles.section}>

@@ -1,0 +1,74 @@
+[
+  {
+    "id": 1,
+    "name": "Level 1 - Zvieratá",
+    "difficulty": "easy",
+    "gridSize": 8,
+    "words": [
+      "PES",
+      "MAČKA",
+      "KOHÚT",
+      "LEV",
+      "TIGER",
+      "SLON",
+      "VLK",
+      "LÍŠKA",
+      "SOVA"
+    ],
+    "tajnicka": "KTONESKOROCHODÍSÁMSEBEŠKODÍ",
+    "solved_sentence": "Kto neskoro chodí sám sebe škodí"
+  },
+  {
+    "id": 2,
+    "name": "Level 2 - Ovocie",
+    "difficulty": "easy",
+    "gridSize": 8,
+    "words": [
+      "JABLKO",
+      "HRUŠKA",
+      "BANÁN",
+      "SLIVKA",
+      "MELÓN",
+      "MALINA",
+      "HROZNO"
+    ],
+    "tajnicka": "DVAKAMIENKYSAHRAJÚNAŠTRK",
+    "solved_sentence": "Dva kamienky sa hrajú na štrk"
+  },
+  {
+    "id": 3,
+    "name": "Level 3 - Mestá",
+    "difficulty": "easy",
+    "gridSize": 8,
+    "words": [
+      "SVIT",
+      "ŠAĽA",
+      "PREŠOV",
+      "ŽILINA",
+      "POPRAD",
+      "MARTIN",
+      "LEVICE",
+      "SENEC"
+    ],
+    "tajnicka": "BABKAUHNIABABKAUHNILA",
+    "solved_sentence": "Kto neskoro chodí sám sebe škodí"
+  },
+  {
+    "id": 4,
+    "name": "Level 4 - Nástroje",
+    "difficulty": "easy",
+    "gridSize": 8,
+    "words": ["NÔŽ", "KLINEC", "RÝĽ", "LOPATA", "MOTYKA", "VIDLY"],
+    "tajnicka": "PREDÁMAUTOCENAPEVNÁKILOMETREDOHODOU",
+    "solved_sentence": "Predám auto cena pevná kilometre dohodou"
+  },
+  {
+    "id": 5,
+    "name": "Level 5 - Doprava",
+    "difficulty": "easy",
+    "gridSize": 8,
+    "words": ["BUS", "LOĎ", "AUTO", "RAKETA", "SKÚTER", "LET", "VOZ"],
+    "tajnicka": "ZOŽENYŠESTANEŠEKERALENKECŽIJESPŇAKOM",
+    "solved_sentence": "Zo ženy še stane šekera len kec žije s pňakom"
+  }
+]
