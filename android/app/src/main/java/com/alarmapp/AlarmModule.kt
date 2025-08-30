@@ -65,8 +65,10 @@ class AlarmModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
     fun stopAlarm(promise: Promise) {
         try {
             val context = reactApplicationContext
-            val intent = Intent(context, AlarmService::class.java)
-            context.stopService(intent)
+            val intent = Intent(context, AlarmService::class.java).apply {
+                action = AlarmService.ACTION_STOP
+            }
+            context.startService(intent)
             promise.resolve(true)
         } catch (e: Exception) {
             promise.reject("STOP_ALARM_ERROR", "Could not stop alarm service", e)

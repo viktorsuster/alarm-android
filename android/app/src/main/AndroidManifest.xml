@@ -31,6 +31,13 @@
         </intent-filter>
       </activity>
 
+      <activity
+        android:name=".AlertActivity"
+        android:theme="@style/Theme.AppCompat.Dialog.Alert"
+        android:excludeFromRecents="true"
+        android:taskAffinity=""
+        android:launchMode="singleTask" />
+
       <receiver android:name=".AlarmReceiver" android:exported="false" />
       <receiver android:name=".BootReceiver" android:exported="false">
           <intent-filter>

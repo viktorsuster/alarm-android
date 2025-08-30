@@ -11,37 +11,63 @@ import android.media.RingtoneManager
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 
+fun isAppInForeground(context: Context): Boolean {
+    val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+    val appProcesses = activityManager.runningAppProcesses ?: return false
+    val packageName = context.packageName
+    return appProcesses.any { appProcess ->
+        appProcess.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND && appProcess.processName == packageName
+    }
+}
+
 class AlarmService : Service() {
     private var mediaPlayer: MediaPlayer? = null
 
+    companion object {
+        const val ACTION_STOP = "STOP_ALARM_SERVICE"
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val channelId = "alarm_service_channel"
-        val channelName = "Alarm Service"
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        
-        val channel = NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_HIGH)
-        notificationManager.createNotificationChannel(channel)
+        if (intent?.action == ACTION_STOP) {
+            stopAlarm()
+            return START_NOT_STICKY
+        }
 
         val soundName = intent?.getStringExtra("ALARM_SOUND_NAME")
         val alarmMessage = intent?.getStringExtra("ALARM_MESSAGE") ?: "Budík"
-
-        // Intent na otvorenie aplikácie
-        val notificationIntent = Intent(this, MainActivity::class.java).apply {
-            this.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            putExtra("notification_action", "stop_alarm")
-            putExtra("alarm_message", alarmMessage) // Pridanie správy
-        }
-        val pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-
-        val notification: Notification = NotificationCompat.Builder(this, channelId)
-            .setContentTitle(alarmMessage)
-            .setContentText("Kliknite pre vypnutie a otvorenie aplikácie.")
-            .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentIntent(pendingIntent) // Pridanie intentu
-            .setAutoCancel(true) // Notifikácia zmizne po kliknutí
-            .build()
         
-        startForeground(1, notification)
+        if (isAppInForeground(this)) {
+            val alertIntent = Intent(this, AlertActivity::class.java).apply {
+                this.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                putExtra("ALARM_MESSAGE", alarmMessage)
+            }
+            startActivity(alertIntent)
+        } else {
+            val channelId = "alarm_service_channel"
+            val channelName = "Alarm Service"
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            
+            val channel = NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_HIGH)
+            notificationManager.createNotificationChannel(channel)
+
+            // Intent na otvorenie aplikácie
+            val notificationIntent = Intent(this, MainActivity::class.java).apply {
+                this.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                putExtra("notification_action", "stop_alarm")
+                putExtra("alarm_message", alarmMessage) // Pridanie správy
+            }
+            val pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+
+            val notification: Notification = NotificationCompat.Builder(this, channelId)
+                .setContentTitle(alarmMessage)
+                .setContentText("Kliknite pre vypnutie a otvorenie aplikácie.")
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentIntent(pendingIntent) // Pridanie intentu
+                .setAutoCancel(true) // Notifikácia zmizne po kliknutí
+                .build()
+            
+            startForeground(1, notification)
+        }
 
         // Priorita 1: Pokus o prehratie vybraného vlastného zvuku
         if (soundName != null) {
@@ -71,11 +97,28 @@ class AlarmService : Service() {
         return START_NOT_STICKY
     }
 
+    private fun stopAlarm() {
+        try {
+            mediaPlayer?.let {
+                if (it.isPlaying) {
+                    it.stop()
+                }
+                it.release()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            mediaPlayer = null
+            stopSelf()
+        }
+    }
+
     override fun onDestroy() {
         super.onDestroy()
-        mediaPlayer?.stop()
-        mediaPlayer?.release()
-        mediaPlayer = null
+        // Ensure cleanup happens if service is destroyed unexpectedly
+        if (mediaPlayer != null) {
+            stopAlarm()
+        }
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
