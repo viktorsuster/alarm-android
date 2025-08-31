@@ -19,36 +19,62 @@ import RadioDetailScreen from '../screens/RadioDetailScreen';
 import ToolsScreen from '../screens/ToolsScreen';
 import SpiritLevelScreen from '../screens/SpiritLevelScreen';
 import CompassScreen from '../screens/CompassScreen';
+import CalculatorScreen from '../screens/CalculatorScreen';
+import ProjectsScreen from '../screens/ProjectsScreen';
+import AddProjectScreen from '../screens/AddProjectScreen';
+import ProjectTimelineScreen from '../screens/ProjectTimelineScreen';
+import AddEntryScreen from '../screens/AddEntryScreen';
+import EntryDetailScreen from '../screens/EntryDetailScreen';
 
-export type Level = {
-  id: number;
+
+export type Entry = {
+  id: string;
+  type: 'note' | 'checklist';
+  content: string | { text: string; checked: boolean }[];
+  photos: string[];
+  date: string;
+};
+
+export type Project = {
+  id: string;
   name: string;
-  difficulty: string;
-  gridSize: number;
-  words: string[];
-  tajnicka: string;
-  solved_sentence: string;
+  entries: Entry[];
 };
 
 export type GamesStackParamList = {
   GamesList: undefined;
-  GameDetail: { gameId: string, gameName: string };
-  SortPuzzle: undefined;
-  WordSearch: { level: Level };
+  GameDetail: { gameId: string; gameName: string };
   WordSearchLevelSelection: undefined;
+  WordSearch: { levelId: number };
   MemoryTrainer: undefined;
+  SortPuzzle: undefined;
   Game2048: undefined;
+};
+
+export type RadioStackParamList = {
+  RadioList: undefined;
+  RadioDetail: { radioName: string, streamUrl: string };
 };
 
 export type ToolsStackParamList = {
   ToolsList: undefined;
   SpiritLevel: undefined;
   Compass: undefined;
+  Calculator: undefined;
+  Inclinometer: undefined;
+  ProjectsList: undefined;
+  AddProject: undefined;
+  ProjectTimeline: { projectId: string };
+  AddEntry: { projectId: string, entry?: Entry };
+  EntryDetail: { projectId: string, entryId: string };
 };
 
-export type RadioStackParamList = {
-  RadioList: undefined;
-  RadioDetail: { radioName: string, streamUrl: string };
+export type ProjectsStackParamList = {
+  ProjectsList: undefined;
+  AddProject: undefined;
+  ProjectTimeline: { projectId: string };
+  AddEntry: { projectId: string, entry?: Entry };
+  EntryDetail: { projectId: string, entryId: string };
 };
 
 export type RootTabParamList = {
@@ -63,6 +89,7 @@ const Tab = createBottomTabNavigator<RootTabParamList>();
 const GamesStack = createNativeStackNavigator<GamesStackParamList>();
 const RadioStack = createNativeStackNavigator<RadioStackParamList>();
 const ToolsStack = createNativeStackNavigator<ToolsStackParamList>();
+const ProjectsStack = createNativeStackNavigator<ProjectsStackParamList>();
 
 const GamesStackNavigator = () => {
   return (
@@ -96,7 +123,31 @@ const ToolsStackNavigator = () => {
       <ToolsStack.Screen name="ToolsList" component={ToolsScreen} options={{ title: 'Nástroje' }} />
       <ToolsStack.Screen name="SpiritLevel" component={SpiritLevelScreen} options={{ title: 'Vodováha' }} />
       <ToolsStack.Screen name="Compass" component={CompassScreen} options={{ title: 'Kompas' }} />
+      <ToolsStack.Screen name="Calculator" component={CalculatorScreen} options={{ title: 'Kalkulačka' }} />
+      <ToolsStack.Screen name="ProjectsList" component={ProjectsScreen} options={{ title: 'Projekty' }} />
+      <ToolsStack.Screen name="AddProject" component={AddProjectScreen} options={{ title: 'Nový Projekt' }} />
+      <ToolsStack.Screen name="ProjectTimeline" component={ProjectTimelineScreen} options={{ title: 'Časová Os' }} />
+      <ToolsStack.Screen name="AddEntry" component={AddEntryScreen} options={{ title: 'Nový Záznam' }} />
+      <ToolsStack.Screen name="EntryDetail" component={EntryDetailScreen} options={{ title: 'Detail Záznamu' }} />
     </ToolsStack.Navigator>
+  );
+}
+
+const ProjectsStackNavigator = () => {
+  return (
+    <ProjectsStack.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: '#1E1E1E' },
+        headerTintColor: '#FFFFFF',
+        headerTitleStyle: { fontWeight: 'bold' },
+      }}
+    >
+      <ProjectsStack.Screen name="ProjectsList" component={ProjectsScreen} options={{ title: 'Projekty' }} />
+      <ProjectsStack.Screen name="AddProject" component={AddProjectScreen} options={{ title: 'Nový Projekt' }} />
+      <ProjectsStack.Screen name="ProjectTimeline" component={ProjectTimelineScreen} options={{ title: 'Časová Os' }} />
+      <ProjectsStack.Screen name="AddEntry" component={AddEntryScreen} options={{ title: 'Nový Záznam' }} />
+      <ProjectsStack.Screen name="EntryDetail" component={EntryDetailScreen} options={{ title: 'Detail Záznamu' }} />
+    </ProjectsStack.Navigator>
   );
 }
 

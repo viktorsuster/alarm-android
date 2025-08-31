@@ -11,8 +11,10 @@ type Tool = {
 };
 
 const tools: Tool[] = [
-  { id: '1', name: 'Vodováha', screen: 'SpiritLevel' },
-  { id: '2', name: 'Kompas', screen: 'Compass' },
+  { id: '1', name: 'Stavebné Projekty', screen: 'ProjectsList' },
+  { id: '2', name: 'Vodováha', screen: 'SpiritLevel' },
+  { id: '3', name: 'Kompas', screen: 'Compass' },
+  { id: '4', name: 'Kalkulačka (m², m³)', screen: 'Calculator' },
 ];
 
 type ToolsScreenNavigationProp = NativeStackNavigationProp<
@@ -26,7 +28,7 @@ const ToolsScreen = () => {
   const renderItem = ({ item }: { item: Tool }) => (
     <TouchableOpacity
       style={styles.itemContainer}
-      onPress={() => navigation.navigate(item.screen)}
+      onPress={() => navigation.navigate(item.screen, {} as any)}
     >
       <Text style={styles.itemText}>{item.name}</Text>
     </TouchableOpacity>

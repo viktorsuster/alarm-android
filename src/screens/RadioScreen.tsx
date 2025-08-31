@@ -39,13 +39,6 @@ const RADIOS = [
     streamUrl: 'https://an.cdn.eurozet.pl/ant-waw.mp3',
     icon: 'radio'
   },
-  { 
-    id: '5', 
-    name: 'Radio Paradise (USA)', 
-    screen: 'RadioDetail' as const, 
-    streamUrl: 'https://stream.radioparadise.com/flacm',
-    icon: 'radio'
-  },
 ];
 
 const RadioScreen = ({ navigation }: Props) => {
