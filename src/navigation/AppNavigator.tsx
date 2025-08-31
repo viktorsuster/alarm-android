@@ -16,6 +16,9 @@ import SortPuzzleScreen from '../screens/SortPuzzleScreen';
 import Game2048Screen from '../screens/Game2048Screen';
 import RadioScreen from '../screens/RadioScreen';
 import RadioDetailScreen from '../screens/RadioDetailScreen';
+import ToolsScreen from '../screens/ToolsScreen';
+import SpiritLevelScreen from '../screens/SpiritLevelScreen';
+import CompassScreen from '../screens/CompassScreen';
 
 export type Level = {
   id: number;
@@ -37,6 +40,12 @@ export type GamesStackParamList = {
   Game2048: undefined;
 };
 
+export type ToolsStackParamList = {
+  ToolsList: undefined;
+  SpiritLevel: undefined;
+  Compass: undefined;
+};
+
 export type RadioStackParamList = {
   RadioList: undefined;
   RadioDetail: { radioName: string, streamUrl: string };
@@ -47,11 +56,13 @@ export type RootTabParamList = {
   Gallery: undefined;
   Games: undefined;
   Radio: undefined;
+  Tools: undefined;
 };
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 const GamesStack = createNativeStackNavigator<GamesStackParamList>();
 const RadioStack = createNativeStackNavigator<RadioStackParamList>();
+const ToolsStack = createNativeStackNavigator<ToolsStackParamList>();
 
 const GamesStackNavigator = () => {
   return (
@@ -70,6 +81,22 @@ const GamesStackNavigator = () => {
       <GamesStack.Screen name="SortPuzzle" component={SortPuzzleScreen} options={{ headerShown: false }} />
       <GamesStack.Screen name="Game2048" component={Game2048Screen} options={{ title: 'Beer 2048' }} />
     </GamesStack.Navigator>
+  );
+}
+
+const ToolsStackNavigator = () => {
+  return (
+    <ToolsStack.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: '#1E1E1E' },
+        headerTintColor: '#FFFFFF',
+        headerTitleStyle: { fontWeight: 'bold' },
+      }}
+    >
+      <ToolsStack.Screen name="ToolsList" component={ToolsScreen} options={{ title: 'Nástroje' }} />
+      <ToolsStack.Screen name="SpiritLevel" component={SpiritLevelScreen} options={{ title: 'Vodováha' }} />
+      <ToolsStack.Screen name="Compass" component={CompassScreen} options={{ title: 'Kompas' }} />
+    </ToolsStack.Navigator>
   );
 }
 
@@ -109,6 +136,8 @@ const AppNavigator = () => {
               iconName = focused ? 'gamepad-variant' : 'gamepad-variant-outline';
             } else if (route.name === 'Radio') {
               iconName = 'radio';
+            } else if (route.name === 'Tools') {
+              iconName = focused ? 'toolbox' : 'toolbox-outline';
             }
 
             return <Icon name={iconName} size={size} color={color} />;
@@ -131,6 +160,14 @@ const AppNavigator = () => {
           options={{
             headerShown: false,
             tabBarLabel: 'Budík',
+          }}
+        />
+        <Tab.Screen
+          name="Tools"
+          component={ToolsStackNavigator}
+          options={{
+            headerShown: false,
+            tabBarLabel: 'Nástroje',
           }}
         />
         <Tab.Screen
