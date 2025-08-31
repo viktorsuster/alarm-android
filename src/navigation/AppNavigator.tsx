@@ -14,6 +14,8 @@ import WordSearchLevelSelectionScreen from '../screens/WordSearchLevelSelectionS
 import MemoryTrainerScreen from '../screens/MemoryTrainerScreen';
 import SortPuzzleScreen from '../screens/SortPuzzleScreen';
 import Game2048Screen from '../screens/Game2048Screen';
+import RadioScreen from '../screens/RadioScreen';
+import RadioDetailScreen from '../screens/RadioDetailScreen';
 
 export type Level = {
   id: number;
@@ -35,14 +37,21 @@ export type GamesStackParamList = {
   Game2048: undefined;
 };
 
+export type RadioStackParamList = {
+  RadioList: undefined;
+  RadioDetail: { radioName: string, streamUrl: string };
+};
+
 export type RootTabParamList = {
   Alarm: undefined;
   Gallery: undefined;
   Games: undefined;
+  Radio: undefined;
 };
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 const GamesStack = createNativeStackNavigator<GamesStackParamList>();
+const RadioStack = createNativeStackNavigator<RadioStackParamList>();
 
 const GamesStackNavigator = () => {
   return (
@@ -64,6 +73,25 @@ const GamesStackNavigator = () => {
   );
 }
 
+const RadioStackNavigator = () => {
+  return (
+    <RadioStack.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: '#1E1E1E' },
+        headerTintColor: '#FFFFFF',
+        headerTitleStyle: { fontWeight: 'bold' },
+      }}
+    >
+      <RadioStack.Screen name="RadioList" component={RadioScreen} options={{ title: 'Rádio' }} />
+      <RadioStack.Screen 
+        name="RadioDetail" 
+        component={RadioDetailScreen} 
+        options={({ route }) => ({ title: route.params.radioName })} 
+      />
+    </RadioStack.Navigator>
+  );
+}
+
 const AppNavigator = () => {
   return (
     <NavigationContainer>
@@ -79,6 +107,8 @@ const AppNavigator = () => {
               iconName = focused ? 'image-multiple' : 'image-multiple-outline';
             } else if (route.name === 'Games') {
               iconName = focused ? 'gamepad-variant' : 'gamepad-variant-outline';
+            } else if (route.name === 'Radio') {
+              iconName = 'radio';
             }
 
             return <Icon name={iconName} size={size} color={color} />;
@@ -109,6 +139,14 @@ const AppNavigator = () => {
           options={{
             title: 'Galéria',
             tabBarLabel: 'Galéria',
+          }}
+        />
+        <Tab.Screen
+          name="Radio"
+          component={RadioStackNavigator}
+          options={{
+            headerShown: false,
+            tabBarLabel: 'Rádio',
           }}
         />
         <Tab.Screen

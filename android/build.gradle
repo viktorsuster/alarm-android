@@ -1,3 +1,6 @@
+project.ext.react = [
+    nodeExecutableAndArgs: ["/opt/homebrew/bin/node"]
+]
 buildscript {
     ext {
         buildToolsVersion = "36.0.0"

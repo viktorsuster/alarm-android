@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { NativeEventEmitter, NativeModules, StyleSheet, View } from 'react-native';
 import { PaperProvider } from 'react-native-paper';
 import { AlarmProvider } from './src/context/AlarmContext';
+import { RadioProvider } from './src/context/RadioContext';
 import AlarmModal from './src/components/AlarmModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import AppNavigator from './src/navigation/AppNavigator';
@@ -55,7 +56,9 @@ const App = (props: any): React.JSX.Element => {
     <PaperProvider>
       <View style={styles.container}>
         <AlarmProvider showModal={showModal}>
-          <AppNavigator />
+          <RadioProvider>
+            <AppNavigator />
+          </RadioProvider>
           <AlarmModal visible={isModalVisible} message={modalMessage} onDismiss={hideModal} />
         </AlarmProvider>
       </View>
