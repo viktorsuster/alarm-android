@@ -86,7 +86,7 @@ const RadioDetailScreen = ({ route }: Props) => {
   return (
     <View style={styles.container}>
       {isLoading ? (
-        <ActivityIndicator size="large" color="#ff4500" />
+        <ActivityIndicator size="large" color="#ff4500" style={styles.loader} />
       ) : error ? (
         <Text style={styles.errorText}>{error}</Text>
       ) : (
@@ -118,6 +118,9 @@ const styles = StyleSheet.create({
     color: 'red',
     fontSize: 18,
   },
+  loader: {
+    marginTop: 20,
+  }
 });
 
 export default RadioDetailScreen;

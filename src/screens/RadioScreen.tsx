@@ -15,36 +15,36 @@ const RADIOS = [
     id: '1', 
     name: 'Funrádio', 
     screen: 'RadioDetail' as const, 
-    icon: 'radio', 
-    streamUrl: 'https://stream.funradio.sk:8000/fun128.mp3?_ic2=1756639024090' 
+    streamUrl: 'https://stream.funradio.sk:8000/fun128.mp3?_ic2=1756639024090',
+    icon: 'radio'
   },
   { 
     id: '2', 
     name: 'Express', 
     screen: 'RadioDetail' as const, 
-    icon: 'radio', 
-    streamUrl: 'https://stream.bauermedia.sk/expres-hi.mp3' 
+    streamUrl: 'https://stream.bauermedia.sk/expres-hi.mp3',
+    icon: 'radio'
   },
   { 
     id: '3', 
     name: 'Europa 2', 
     screen: 'RadioDetail' as const, 
-    icon: 'radio', 
-    streamUrl: 'https://stream.bauermedia.sk/europa2-hi.mp3' 
+    streamUrl: 'https://stream.bauermedia.sk/europa2-hi.mp3',
+    icon: 'radio'
   },
   { 
     id: '4', 
     name: 'Antyradio', 
     screen: 'RadioDetail' as const, 
-    icon: 'radio', 
-    streamUrl: 'https://an.cdn.eurozet.pl/ant-waw.mp3' 
+    streamUrl: 'https://an.cdn.eurozet.pl/ant-waw.mp3',
+    icon: 'radio'
   },
   { 
     id: '5', 
     name: 'Radio Paradise (USA)', 
     screen: 'RadioDetail' as const, 
-    icon: 'radio', 
-    streamUrl: 'https://stream.radioparadise.com/flacm' 
+    streamUrl: 'https://stream.radioparadise.com/flacm',
+    icon: 'radio'
   },
 ];
 
